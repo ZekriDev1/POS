@@ -35,8 +35,8 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
       if (from < 2) {
-        await m.addColumn(categories, categories.icon);
-        await m.addColumn(categories, categories.parentId);
+        await customStatement('ALTER TABLE categories ADD COLUMN icon TEXT');
+        await customStatement('ALTER TABLE categories ADD COLUMN parent_id TEXT');
       }
     },
   );
@@ -130,12 +130,46 @@ class AppDatabase extends _$AppDatabase {
   // ── Categories ──
   Future<List<Category>> getAllCategories() => select(categories).get();
 
-  Future<void> createCategory(String id, String name) async {
-    await into(categories).insert(CategoriesCompanion(id: Value(id), name: Value(name)));
+  Future<List<Category>> getParentCategories() {
+    return (select(categories)..where((c) => c.parentId.isNull())).get();
   }
 
-  Future<int> deleteCategory(String id) =>
-      (delete(categories)..where((t) => t.id.equals(id))).go();
+  Future<List<Category>> getSubCategories(String parentId) {
+    return (select(categories)..where((c) => c.parentId.equals(parentId))).get();
+  }
+
+  Future<void> createCategory({
+    required String id,
+    required String name,
+    String? icon,
+    String? parentId,
+  }) async {
+    await into(categories).insert(CategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      icon: Value(icon),
+      parentId: Value(parentId),
+    ));
+  }
+
+  Future<void> updateCategory({
+    required String id,
+    String? name,
+    String? icon,
+    String? parentId,
+  }) async {
+    await (update(categories)..where((c) => c.id.equals(id))).write(CategoriesCompanion(
+      id: Value(id),
+      name: name != null ? Value(name) : const Value.absent(),
+      icon: icon != null ? Value(icon) : const Value.absent(),
+      parentId: parentId != null ? Value(parentId) : const Value.absent(),
+    ));
+  }
+
+  Future<int> deleteCategory(String id) async {
+    await (delete(categories)..where((c) => c.parentId.equals(id))).go();
+    return (delete(categories)..where((c) => c.id.equals(id))).go();
+  }
 
   Future<int> getCategoryCount() =>
       (select(categories)..where((t) => t.id.isNotNull())).get().then((r) => r.length);
@@ -171,6 +205,7 @@ class AppDatabase extends _$AppDatabase {
     required String invoiceNumber,
     String? customerId,
     required double subtotal,
+    double tax = 0,
     required double total,
     required String paymentMethod,
     DateTime? createdAt,
@@ -180,6 +215,7 @@ class AppDatabase extends _$AppDatabase {
       invoiceNumber: Value(invoiceNumber),
       customerId: Value(customerId),
       subtotal: Value(subtotal),
+      tax: Value(tax),
       total: Value(total),
       paymentMethod: Value(paymentMethod),
       createdAt: Value(createdAt ?? DateTime.now()),
@@ -287,6 +323,27 @@ class AppDatabase extends _$AppDatabase {
       type: Value(type),
       date: Value(date ?? DateTime.now()),
     ));
+  }
+
+  // ── Backup & Restore ──
+  static Future<String> get databasePath async {
+    final dir = await getApplicationDocumentsDirectory();
+    return p.join(dir.path, 'restropos.db');
+  }
+
+  Future<void> backupDatabase(String destinationPath) async {
+    try {
+      await customStatement('VACUUM INTO ?', [destinationPath]);
+    } catch (_) {
+      final src = await databasePath;
+      await File(src).copy(destinationPath);
+    }
+  }
+
+  Future<void> restoreDatabase(String backupPath) async {
+    await close();
+    final dest = await databasePath;
+    await File(backupPath).copy(dest);
   }
 }
 

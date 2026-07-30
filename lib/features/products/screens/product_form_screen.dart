@@ -169,11 +169,19 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
   }
 
+  final _catIcons = <String, IconData>{
+    'category': Icons.category, 'food': Icons.restaurant, 'drink': Icons.local_drink,
+    'coffee': Icons.coffee, 'fastfood': Icons.fastfood, 'cake': Icons.cake,
+    'icecream': Icons.icecream, 'fruit': Icons.apple, 'bread': Icons.bakery_dining,
+    'snack': Icons.shopping_bag, 'tool': Icons.build, 'gift': Icons.card_giftcard,
+    'other': Icons.more_horiz,
+  };
+
   Widget _buildCategoryDropdown() {
     return FutureBuilder(
-      future: ref.read(databaseProvider).getAllCategories(),
+      future: ref.read(databaseProvider).getParentCategories(),
       builder: (ctx, snap) {
-        final cats = snap.data ?? <dynamic>[];
+        final parents = snap.data ?? <dynamic>[];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -197,14 +205,47 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ),
             ]),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _categoryId,
-              items: cats.map((c) => DropdownMenuItem<String>(value: c.id, child: Text(c.name))).toList(),
-              onChanged: (v) => setState(() => _categoryId = v),
-              decoration: InputDecoration(
-                filled: true, fillColor: AppTheme.bgColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
+            FutureBuilder(
+              future: Future.wait(parents.map((p) => ref.read(databaseProvider).getSubCategories(p.id))),
+              builder: (ctx, subSnap) {
+                final allSubs = subSnap.data ?? <List<dynamic>>[];
+                return DropdownButtonFormField<String>(
+                  value: _categoryId,
+                  items: [
+                    const DropdownMenuItem<String>(value: null, child: Text('None')),
+                    ...parents.asMap().entries.expand((e) {
+                      final p = e.value;
+                      final subs = e.key < allSubs.length ? allSubs[e.key] : <dynamic>[];
+                      return [
+                        DropdownMenuItem<String>(
+                          value: p.id,
+                          child: Row(children: [
+                            Icon(_catIcons[p.icon] ?? Icons.category, size: 18, color: AppTheme.primary),
+                            const SizedBox(width: 8),
+                            Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                        ...subs.map((s) => DropdownMenuItem<String>(
+                          value: s.id,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 24),
+                            child: Row(children: [
+                              Icon(_catIcons[s.icon] ?? Icons.subdirectory_arrow_right, size: 16, color: AppTheme.textMuted),
+                              const SizedBox(width: 8),
+                              Text(s.name, style: const TextStyle(fontSize: 13)),
+                            ]),
+                          ),
+                        )),
+                      ];
+                    }),
+                  ],
+                  onChanged: (v) => setState(() => _categoryId = v),
+                  decoration: const InputDecoration(
+                    filled: true, fillColor: AppTheme.bgColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+                  ),
+                );
+              },
             ),
           ],
         );
@@ -214,20 +255,100 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   void _addCategory() {
     final ctrl = TextEditingController();
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Add Category'),
-      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Category name')),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-        TextButton(onPressed: () async {
-          if (ctrl.text.trim().isEmpty) return;
-          final db = ref.read(databaseProvider);
-          final id = 'cat${DateTime.now().millisecondsSinceEpoch}';
-          await db.createCategory(id, ctrl.text.trim());
-          if (ctx.mounted) Navigator.pop(ctx);
-          setState(() => _categoryId = id);
-        }, child: const Text('Add')),
-      ],
+    String? selectedIcon;
+    String? selectedParent;
+
+    showDialog(context: context, builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        title: const Text('Add Category'),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  decoration: const InputDecoration(
+                    hintText: 'Category name',
+                    filled: true, fillColor: AppTheme.bgColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Icon', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  GestureDetector(onTap: () => setDialogState(() => selectedIcon = null),
+                    child: Container(width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: selectedIcon == null ? AppTheme.primary.withOpacity(0.1) : AppTheme.bgColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: selectedIcon == null ? AppTheme.primary : Colors.transparent, width: 2),
+                      ),
+                      child: const Icon(Icons.category, size: 20, color: AppTheme.textMuted),
+                    ),
+                  ),
+                  ...['food', 'drink', 'coffee', 'fastfood', 'cake', 'icecream', 'fruit', 'bread', 'snack', 'tool', 'gift', 'other'].map((key) {
+                    final icons = {
+                      'food': Icons.restaurant, 'drink': Icons.local_drink, 'coffee': Icons.coffee,
+                      'fastfood': Icons.fastfood, 'cake': Icons.cake, 'icecream': Icons.icecream,
+                      'fruit': Icons.apple, 'bread': Icons.bakery_dining, 'snack': Icons.shopping_bag,
+                      'tool': Icons.build, 'gift': Icons.card_giftcard, 'other': Icons.more_horiz,
+                    };
+                    final active = selectedIcon == key;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedIcon = key),
+                      child: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.bgColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: active ? AppTheme.primary : Colors.transparent, width: 2),
+                        ),
+                        child: Icon(icons[key]!, size: 20, color: active ? AppTheme.primary : AppTheme.textMuted),
+                      ),
+                    );
+                  }),
+                ]),
+                const SizedBox(height: 16),
+                const Text('Parent Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                const SizedBox(height: 8),
+                FutureBuilder(
+                  future: ref.read(databaseProvider).getParentCategories(),
+                  builder: (ctx, snap) {
+                    final parents = snap.data ?? <dynamic>[];
+                    return DropdownButtonFormField<String?>(
+                      value: selectedParent,
+                      items: [
+                        const DropdownMenuItem<String?>(value: null, child: Text('None (top-level)')),
+                        ...parents.map((p) => DropdownMenuItem<String?>(value: p.id, child: Text(p.name))),
+                      ],
+                      onChanged: (v) => setDialogState(() => selectedParent = v),
+                      decoration: const InputDecoration(
+                        filled: true, fillColor: AppTheme.bgColor,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () async {
+            if (ctrl.text.trim().isEmpty) return;
+            final db = ref.read(databaseProvider);
+            final id = 'cat${DateTime.now().millisecondsSinceEpoch}';
+            await db.createCategory(id: id, name: ctrl.text.trim(), icon: selectedIcon, parentId: selectedParent);
+            if (ctx.mounted) Navigator.pop(ctx);
+            setState(() => _categoryId = id);
+          }, child: const Text('Add')),
+        ],
+      ),
     ));
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'github_api.dart';
@@ -199,50 +200,80 @@ class UpdateService {
 
     final name = file.uri.pathSegments.last;
     if (name.endsWith('.exe') || name.endsWith('.msi')) {
-      await Process.run(filePath, [], runInShell: true);
-      exit(0);
+      await _installDetached(filePath, isZip: false);
     } else if (name.endsWith('.zip')) {
-      await _extractAndReplace(filePath);
+      final extractDir = await _extractZip(filePath);
+      await _installDetached(extractDir, isZip: true);
+      // Clean up the zip file
+      unawaited(file.delete());
     } else {
       throw Exception('Unsupported update file type: $name');
     }
   }
 
-  Future<void> _extractAndReplace(String zipPath) async {
-    final tempExtractDir = Directory('${Directory.systemTemp.path}\\restropos_update\\');
-    if (await tempExtractDir.exists()) {
-      await tempExtractDir.delete(recursive: true);
-    }
-    await tempExtractDir.create(recursive: true);
+  Future<String> _extractZip(String zipPath) async {
+    final tempDir = Directory('${Directory.systemTemp.path}\\restropos_extract_${DateTime.now().millisecondsSinceEpoch}\\');
+    if (await tempDir.exists()) await tempDir.delete(recursive: true);
+    await tempDir.create(recursive: true);
 
     await Process.run('powershell', [
       '-NoProfile',
       '-Command',
-      'Expand-Archive -Path "$zipPath" -DestinationPath "${tempExtractDir.path}" -Force',
+      'Expand-Archive -Path "$zipPath" -DestinationPath "${tempDir.path}" -Force',
     ], runInShell: true);
 
-    final appDir = Directory.current;
-    final files = await tempExtractDir.list(recursive: true).toList();
-    for (final entity in files) {
-      if (entity is File) {
-        final relativePath = entity.path.substring(tempExtractDir.path.length + 1);
-        if (relativePath.isEmpty) continue;
-        final destPath = '${appDir.path}\\$relativePath';
-        final destDir = Directory(destPath).parent;
-        if (!await destDir.exists()) {
-          await destDir.create(recursive: true);
+    // Check if zip has a single top-level folder and adjust
+    final contents = await tempDir.list().toList();
+    if (contents.length == 1 && contents[0] is Directory) {
+      final inner = contents[0] as Directory;
+      final innerDir = inner.path;
+      // Rename inner dir contents up one level
+      final innerContents = await inner.list().toList();
+      for (final e in innerContents) {
+        final dest = '${tempDir.path}\\${e.uri.pathSegments.last}';
+        if (e is Directory) {
+          await e.rename(dest);
+        } else if (e is File) {
+          await e.rename(dest);
         }
-        await entity.copy(destPath);
       }
+      await inner.delete();
     }
 
-    await tempExtractDir.delete(recursive: true);
-    await File(zipPath).delete();
+    return tempDir.path;
+  }
 
-    final exe = File('${appDir.path}\\restropos.exe');
-    if (await exe.exists()) {
-      await Process.run(exe.path, [], runInShell: true);
+  Future<void> _installDetached(String sourcePath, {required bool isZip}) async {
+    final appExe = Platform.resolvedExecutable;
+    final exeName = appExe.split('\\').last;
+    final appDir = appExe.substring(0, appExe.length - exeName.length - 1);
+
+    final ps = StringBuffer();
+    ps.writeln('Start-Sleep -Seconds 2');
+    ps.writeln('Remove-Item "$appDir\\${exeName}.old" -Force -ErrorAction SilentlyContinue');
+    ps.writeln('Rename-Item "$appDir\\$exeName" "${exeName}.old" -Force');
+
+    if (isZip) {
+      ps.writeln('Copy-Item "$sourcePath\\*" "$appDir" -Recurse -Force');
+      ps.writeln('Remove-Item "$sourcePath" -Recurse -Force -ErrorAction SilentlyContinue');
+    } else {
+      ps.writeln('Copy-Item "$sourcePath" "$appDir\\$exeName" -Force');
+      ps.writeln('Remove-Item "$sourcePath" -Force -ErrorAction SilentlyContinue');
     }
+
+    ps.writeln('Remove-Item "$appDir\\${exeName}.old" -Force -ErrorAction SilentlyContinue');
+    ps.writeln('Start-Process "$appDir\\$exeName"');
+
+    final scriptPath = '${Directory.systemTemp.path}\\restropos_update.ps1';
+    await File(scriptPath).writeAsString(ps.toString());
+
+    await Process.start('powershell', [
+      '-NoProfile',
+      '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden',
+      '-File', scriptPath,
+    ], runInShell: false, mode: ProcessStartMode.detached);
+
     exit(0);
   }
 

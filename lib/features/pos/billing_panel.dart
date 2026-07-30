@@ -4,7 +4,9 @@ import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/services/printer_service.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
+import 'package:restropos/features/invoices/widgets/receipt_widget.dart';
 import 'package:restropos/features/pos/pos_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class BillingPanel extends ConsumerWidget {
@@ -170,11 +172,26 @@ class BillingPanel extends ConsumerWidget {
     final invoiceNumber = 'INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch % 10000}';
     final subtotal = cart.subtotal;
 
+    final prefs = await SharedPreferences.getInstance();
+    final storeName = prefs.getString('invoice_company') ?? prefs.getString('store_name') ?? 'RestroPOS';
+    final phone = prefs.getString('invoice_phone');
+    final address = prefs.getString('invoice_address');
+    final tvaNumber = prefs.getString('invoice_tva');
+    final taxRateStr = prefs.getString('invoice_tva_rate') ?? '20';
+    final taxRate = double.tryParse(taxRateStr) ?? 20;
+    final showTax = prefs.getBool('invoice_show_tax') ?? true;
+    final footer = prefs.getString('invoice_footer');
+    final cashier = prefs.getString('cashier_name') ?? '';
+
+    final double effectiveTax = showTax ? subtotal * taxRate / 100 : 0;
+    final double total = subtotal + effectiveTax;
+
     await db.createSale(
       id: saleId,
       invoiceNumber: invoiceNumber,
       subtotal: subtotal,
-      total: subtotal,
+      tax: effectiveTax,
+      total: total,
       paymentMethod: cart.paymentMethod,
       createdAt: now,
     );
@@ -193,28 +210,144 @@ class BillingPanel extends ConsumerWidget {
       }
     }
 
-    final printer = PrinterService();
-    await printer.printInvoice(
-      companyName: 'RestroPOS',
-      phone: null,
-      address: null,
-      tvaNumber: null,
-      invoiceNumber: invoiceNumber,
-      date: now,
-      customerName: null,
-      items: cart.items.map((i) => InvoiceItem(name: i.name, quantity: i.quantity, price: i.price)).toList(),
-      subtotal: subtotal,
-      tax: 0,
-      total: subtotal,
-      paymentMethod: cart.paymentMethod,
-      footer: null,
-      showTax: false,
-      taxRate: 0,
-    );
+    final nowFormatted = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final paymentLabel = cart.paymentMethod == 'cash' ? 'Espèces' : 'Carte';
+
+    final items = cart.items
+        .map((i) => ReceiptItem(name: i.name, unit: 'Unité', quantity: i.quantity, price: i.price))
+        .toList();
+
+    if (context.mounted) {
+      await showDialog(
+        context: context,
+        useSafeArea: false,
+        builder: (ctx) => Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          child: _ReceiptPreviewDialog(
+            receipt: ReceiptWidget(
+              storeName: storeName,
+              storePhone: phone?.isNotEmpty == true ? phone : null,
+              storeCity: address?.isNotEmpty == true ? address : null,
+              storeTvaNumber: tvaNumber?.isNotEmpty == true ? tvaNumber : null,
+              date: nowFormatted,
+              time: timeFormatted,
+              orderNumber: invoiceNumber,
+              cashier: cashier,
+              paymentMethod: paymentLabel,
+              items: items,
+              taxRate: showTax ? taxRate : 0,
+              footerMessage: footer?.isNotEmpty == true ? footer : null,
+            ),
+            onPrint: () {
+              Navigator.of(ctx).pop();
+              final printer = PrinterService();
+              printer.printInvoice(
+                companyName: storeName,
+                phone: phone,
+                address: address,
+                tvaNumber: tvaNumber,
+                invoiceNumber: invoiceNumber,
+                date: now,
+                customerName: null,
+                items: cart.items
+                    .map((i) => InvoiceItem(name: i.name, quantity: i.quantity, price: i.price))
+                    .toList(),
+                subtotal: subtotal,
+                tax: effectiveTax,
+                total: total,
+                paymentMethod: cart.paymentMethod,
+                footer: footer,
+                showTax: showTax,
+                taxRate: taxRate,
+              );
+            },
+          ),
+        ),
+      );
+    }
 
     notifier.clear();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sale completed')));
-    }
+  }
+
+}
+
+class _ReceiptPreviewDialog extends StatelessWidget {
+  final ReceiptWidget receipt;
+  final VoidCallback onPrint;
+
+  const _ReceiptPreviewDialog({
+    required this.receipt,
+    required this.onPrint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 420,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Receipt Preview',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.print_outlined),
+                  tooltip: 'Print',
+                  onPressed: onPrint,
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: receipt,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: onPrint,
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Print'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF7A00),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

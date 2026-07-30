@@ -121,18 +121,26 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     );
   }
 
+  static const _catIcons = <String, IconData>{
+    'category': Icons.category, 'food': Icons.restaurant, 'drink': Icons.local_drink,
+    'coffee': Icons.coffee, 'fastfood': Icons.fastfood, 'cake': Icons.cake,
+    'icecream': Icons.icecream, 'fruit': Icons.apple, 'bread': Icons.bakery_dining,
+    'snack': Icons.shopping_bag, 'tool': Icons.build, 'gift': Icons.card_giftcard,
+    'other': Icons.more_horiz,
+  };
+
   Widget _buildCategories() {
     return FutureBuilder(
       future: ref.read(databaseProvider).getAllCategories(),
       builder: (ctx, snap) {
-        final cats = snap.data ?? [];
+        final cats = snap.data ?? <dynamic>[];
         return SizedBox(
           height: 80,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
               _buildCatCard('All', null, Icons.grid_view),
-              ...cats.map((c) => _buildCatCard(c.name, c.id, Icons.category)),
+              ...cats.map((c) => _buildCatCard(c.name, c.id, _catIcons[c.icon] ?? Icons.category)),
             ],
           ),
         );

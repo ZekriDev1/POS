@@ -16,8 +16,8 @@ class BillingPanel extends ConsumerWidget {
     final notifier = ref.read(cartProvider.notifier);
 
     return Container(
-      width: 380,
-      padding: const EdgeInsets.all(24),
+      width: 360,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: const BoxDecoration(
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.only(topLeft: Radius.circular(24), bottomLeft: Radius.circular(24)),

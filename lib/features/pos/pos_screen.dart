@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/database/app_database.dart';
@@ -81,24 +82,25 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 32),
-              const Text('Menu', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
-              const SizedBox(height: 24),
-              _buildSearchBar(),
-              const SizedBox(height: 20),
-              _buildCategories(),
-              const SizedBox(height: 16),
-              Expanded(child: _buildProductGrid()),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(right: 16, left: 24),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                _buildSearchBar(),
+                const SizedBox(height: 12),
+                _buildCategories(),
+                const SizedBox(height: 12),
+                Expanded(child: _buildProductGrid()),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -125,7 +127,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       builder: (ctx, snap) {
         final cats = snap.data ?? [];
         return SizedBox(
-          height: 100,
+          height: 80,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
@@ -143,7 +145,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = id),
       child: Container(
-        width: 90, height: 100,
+        width: 80, height: 80,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.cardBg,
@@ -153,9 +155,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: active ? AppTheme.primary : AppTheme.textMuted, size: 28),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontSize: 12, color: active ? AppTheme.primary : AppTheme.textMuted, fontWeight: FontWeight.w500)),
+            Icon(icon, color: active ? AppTheme.primary : AppTheme.textMuted, size: 24),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: active ? AppTheme.primary : AppTheme.textMuted, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -172,9 +174,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 1.1,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            childAspectRatio: 1.0,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
           ),
           itemCount: products.length + 1,
           itemBuilder: (ctx, i) {
@@ -190,6 +192,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     if (query.isNotEmpty) return db.searchProducts(query);
     if (_selectedCategory != null) return db.getProductsByCategory(_selectedCategory!);
     return db.getAllProducts();
+  }
+
+  Widget _buildProductInitial(dynamic product) {
+    return Center(child: Text(product.name.isNotEmpty ? product.name[0].toUpperCase() : '?',
+        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppTheme.primary)));
   }
 
   Widget _buildAddCard() {
@@ -231,25 +238,83 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
   Widget _buildProductCard(dynamic product) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(20)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProductFormScreen(product: product)),
+                  );
+                  setState(() {});
+                },
+                child: Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit, size: 16, color: AppTheme.primary),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Product'),
+                      content: Text('Are you sure you want to delete "${product.name}"?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await ref.read(databaseProvider).deleteProduct(product.id);
+                    setState(() {});
+                  }
+                },
+                child: Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.delete, size: 16, color: Colors.red),
+                ),
+              ),
+            ],
+          ),
           Expanded(
             child: Center(
               child: Container(
-                width: 80, height: 80,
+                width: 72, height: 72,
                 decoration: BoxDecoration(color: AppTheme.bgColor, borderRadius: BorderRadius.circular(12)),
-                child: Center(child: Text(product.name.isNotEmpty ? product.name[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppTheme.primary))),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: product.image != null
+                      ? Image.file(File(product.image!), fit: BoxFit.cover, width: 72, height: 72, errorBuilder: (_, __, ___) => _buildProductInitial(product))
+                      : _buildProductInitial(product),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(CurrencyFormatter.format(product.sellingPrice), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(CurrencyFormatter.format(product.sellingPrice), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -259,11 +324,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-              child: const Text('Add to Billing', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              child: const Text('Add to Billing', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
             ),
           ),
         ],

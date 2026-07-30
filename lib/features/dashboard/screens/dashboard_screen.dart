@@ -13,12 +13,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(databaseProvider);
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 32, right: 32, bottom: 32),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Dashboard', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
-          const SizedBox(height: 24),
           FutureBuilder<Map<String, dynamic>>(
             future: _loadStats(db),
             builder: (ctx, snap) {

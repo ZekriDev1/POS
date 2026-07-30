@@ -153,12 +153,6 @@ class _Sidebar extends StatelessWidget {
                     const SizedBox(height: 6),
                     _navItem(Icons.receipt, 'Invoice', AppView.invoice),
                     const SizedBox(height: 6),
-                    const Divider(height: 1),
-                    _navItem(Icons.category, 'Categories', AppView.categories, compact: true),
-                    _navItem(Icons.people, 'Customers', AppView.customers, compact: true),
-                    _navItem(Icons.local_shipping, 'Suppliers', AppView.suppliers, compact: true),
-                    _navItem(Icons.inventory, 'Inventory', AppView.inventory, compact: true),
-                    const Divider(height: 1),
                     _navItem(Icons.settings, 'Settings', AppView.settings),
                     const SizedBox(height: 12),
                   ],
@@ -204,35 +198,41 @@ class _UpdateIcon extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(updateStateProvider);
     final hasUpdate = state.status == UpdateStatus.updateAvailable;
+    final isChecking = state.status == UpdateStatus.checking;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: hasUpdate
-            ? () async {
-                final service = ref.read(updateServiceProvider);
-                final release = state.release;
-                if (release == null) return;
-                showUpdateDialog(
-                  context,
-                  currentVersion: state.currentVersion ?? '--',
+        onTap: () async {
+          if (hasUpdate) {
+            final service = ref.read(updateServiceProvider);
+            final release = state.release;
+            if (release == null) return;
+            showUpdateDialog(
+              context,
+              currentVersion: state.currentVersion ?? '--',
+              release: release,
+              onUpdateNow: () async {
+                final filePath = await service.downloadUpdate(
                   release: release,
-                  onUpdateNow: () async {
-                    final filePath = await service.downloadUpdate(
-                      release: release,
-                      onProgress: (_) {},
-                    );
-                    await service.installUpdate(filePath);
-                  },
-                  onSkip: () => service.skipVersion(release.version),
-                  onNeverAsk: () => service.neverAskAgain(),
+                  onProgress: (_) {},
                 );
-              }
-            : null,
+                await service.installUpdate(filePath);
+              },
+              onSkip: () => service.skipVersion(release.version),
+              onNeverAsk: () => service.neverAskAgain(),
+            );
+          } else {
+            ref.read(updateStateProvider.notifier).state = const UpdateState(status: UpdateStatus.checking);
+            ref.refresh(updateCheckProvider);
+          }
+        },
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Icon(Icons.notifications_outlined, color: AppTheme.textMuted),
+            isChecking
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
+                : const Icon(Icons.notifications_outlined, color: AppTheme.textMuted),
             if (hasUpdate)
               Positioned(
                 right: -4,
@@ -253,17 +253,6 @@ class _UpdateIcon extends ConsumerWidget {
   }
 }
 
-class _UserAvatar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: AppTheme.primary,
-      child: const Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
 class _Header extends StatelessWidget {
   final String title;
   const _Header({required this.title});
@@ -276,24 +265,7 @@ class _Header extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppTheme.cardBg,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Row(children: [
-                Icon(Icons.search, color: AppTheme.textMuted, size: 20),
-                SizedBox(width: 8),
-                Text('Search...', style: TextStyle(color: AppTheme.textMuted)),
-              ]),
-            ),
-            const SizedBox(width: 16),
-            _UpdateIcon(),
-            const SizedBox(width: 16),
-            _UserAvatar(),
-          ]),
+          _UpdateIcon(),
         ],
       ),
     );

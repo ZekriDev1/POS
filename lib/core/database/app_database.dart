@@ -28,7 +28,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(categories, categories.icon);
+        await m.addColumn(categories, categories.parentId);
+      }
+    },
+  );
 
   // ── Products ──
   Future<List<Product>> getAllProducts() => select(products).get();
@@ -233,6 +244,11 @@ class AppDatabase extends _$AppDatabase {
     return (select(saleItems)..where((i) => i.id.isNotNull()))
         .get()
         .then((r) => r.fold<int>(0, (sum, i) => sum + i.quantity));
+  }
+
+  Future<void> deleteSale(String id) async {
+    await (delete(saleItems)..where((i) => i.saleId.equals(id))).go();
+    await (delete(sales)..where((s) => s.id.equals(id))).go();
   }
 
   // ── Suppliers ──

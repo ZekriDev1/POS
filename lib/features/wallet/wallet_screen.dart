@@ -12,7 +12,7 @@ class WalletScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(databaseProvider);
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 32, right: 32, bottom: 32),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
       child: FutureBuilder<Map<String, dynamic>>(
         future: _loadWallet(db),
         builder: (ctx, snap) {
@@ -20,8 +20,6 @@ class WalletScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Wallet', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
-              const SizedBox(height: 24),
               if (w != null) ...[
                 Wrap(spacing: 16, runSpacing: 16, children: [
                   _statBox("Today's Sales", CurrencyFormatter.format(w['todaySales'] as double), Icons.payments),

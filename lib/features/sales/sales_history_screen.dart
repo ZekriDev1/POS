@@ -15,14 +15,10 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 32, right: 32, bottom: 32),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
-          ]),
-          const SizedBox(height: 24),
           FutureBuilder(
             future: ref.read(databaseProvider).getAllSales(),
             builder: (ctx, snap) {
@@ -42,7 +38,41 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                   children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text('#${s.invoiceNumber}', style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.primary)),
-                      Text(CurrencyFormatter.format(s.total), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(CurrencyFormatter.format(s.total), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete Sale'),
+                                content: Text('Delete sale #${s.invoiceNumber}? This cannot be undone.'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              await ref.read(databaseProvider).deleteSale(s.id);
+                              setState(() {});
+                            }
+                          },
+                          child: Container(
+                            width: 28, height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.delete, size: 16, color: Colors.red),
+                          ),
+                        ),
+                      ]),
                     ]),
                     const SizedBox(height: 4),
                     Text('${s.createdAt.day}/${s.createdAt.month}/${s.createdAt.year} ${s.createdAt.hour.toString().padLeft(2,'0')}:${s.createdAt.minute.toString().padLeft(2,'0')}',

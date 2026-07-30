@@ -177,7 +177,25 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+            Row(children: [
+              const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _addCategory(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add, size: 14, color: AppTheme.primary),
+                    SizedBox(width: 4),
+                    Text('New', style: TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+            ]),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: _categoryId,
@@ -192,6 +210,25 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         );
       },
     );
+  }
+
+  void _addCategory() {
+    final ctrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Add Category'),
+      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Category name')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(onPressed: () async {
+          if (ctrl.text.trim().isEmpty) return;
+          final db = ref.read(databaseProvider);
+          final id = 'cat${DateTime.now().millisecondsSinceEpoch}';
+          await db.createCategory(id, ctrl.text.trim());
+          if (ctx.mounted) Navigator.pop(ctx);
+          setState(() => _categoryId = id);
+        }, child: const Text('Add')),
+      ],
+    ));
   }
 
   Widget _buildImagePicker() {

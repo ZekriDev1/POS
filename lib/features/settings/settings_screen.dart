@@ -7,6 +7,8 @@ import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:restropos/features/settings/widgets/update_settings_section.dart';
+import 'package:restropos/core/l10n/translations.dart';
+import 'package:restropos/core/utils/currency_formatter.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -46,15 +48,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('store_name', _nameCtrl.text);
     await prefs.setString('cashier_name', _cashierCtrl.text);
+    await prefs.setString('currency_symbol', _currencyCtrl.text);
+    CurrencyFormatter.symbol = _currencyCtrl.text;
     if (_logoPath != null) await prefs.setString('store_logo', _logoPath!);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.t('settingsSaved'))));
     }
   }
 
   Future<void> _backup() async {
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save Database Backup',
+      dialogTitle: ref.t('saveBackup'),
       fileName: 'restropos-backup-${DateTime.now().millisecondsSinceEpoch}.db',
     );
     if (path == null) return;
@@ -62,11 +66,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       await ref.read(databaseProvider).backupDatabase(path);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Backup saved to $path')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.t('backupSuccess', {'path': path}))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Backup failed: $e'), backgroundColor: AppTheme.danger));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.t('backupFailed', {'error': '$e'})), backgroundColor: AppTheme.danger));
       }
     } finally {
       if (mounted) setState(() => _backingUp = false);
@@ -75,18 +79,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _restore() async {
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Select Backup File to Restore',
+      dialogTitle: ref.t('selectBackup'),
       type: FileType.any,
     );
     if (result == null || result.files.single.path == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Restore Data'),
-        content: const Text('This will replace ALL current data with the backup. This cannot be undone. Continue?'),
+        title: Text(ref.t('restoreData')),
+        content: Text(ref.t('restoreConfirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('Restore')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ref.t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: Text(ref.t('restore'))),
         ],
       ),
     );
@@ -96,11 +100,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref.read(databaseProvider).restoreDatabase(result.files.single.path!);
       ref.invalidate(databaseProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data restored successfully. Please restart the app.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.t('restoreSuccess'))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Restore failed: $e'), backgroundColor: AppTheme.danger));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.t('restoreFailed', {'error': '$e'})), backgroundColor: AppTheme.danger));
       }
     } finally {
       if (mounted) setState(() => _restoring = false);
@@ -123,13 +127,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildField('Store Name', _nameCtrl),
+                  _buildField(ref.t('storeName'), _nameCtrl),
                   const SizedBox(height: 20),
-                  _buildField('Currency Symbol', _currencyCtrl),
+                  _buildField(ref.t('currencySymbol'), _currencyCtrl),
                   const SizedBox(height: 20),
-                  _buildField('Cashier Name', _cashierCtrl),
+                  _buildField(ref.t('cashierName'), _cashierCtrl),
                   const SizedBox(height: 20),
-                  const Text('Store Logo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                  Text(ref.t('storeLogo'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: () async {
@@ -162,18 +166,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Save Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      child: Text(ref.t('saveSettings'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
+            _buildLanguageCard(),
+            const SizedBox(height: 24),
             _buildBackupCard(),
             const SizedBox(height: 24),
             const UpdateSettingsSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageCard() {
+    final locale = ref.watch(localeProvider);
+    final code = locale.languageCode;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 440),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.language, color: AppTheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(ref.t('selectLanguage'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+          ]),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: code,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppTheme.bgColor,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            items: [
+              DropdownMenuItem(value: 'en', child: Text('🇬🇧  ${ref.t('english')}')),
+              DropdownMenuItem(value: 'fr', child: Text('🇫🇷  ${ref.t('french')}')),
+              DropdownMenuItem(value: 'ar', child: Text('🇲🇦  ${ref.t('arabic')}')),
+            ],
+            onChanged: (v) {
+              if (v != null && v != code) {
+                ref.read(localeProvider.notifier).setLocale(v);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -193,11 +243,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: const Icon(Icons.backup, color: AppTheme.primary, size: 20),
             ),
             const SizedBox(width: 12),
-            const Text('Backup & Restore', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+            Text(ref.t('backupRestore'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
           ]),
           const SizedBox(height: 16),
-          const Text('Export all your data (products, sales, categories, etc.) to a single file, or restore from a previous backup.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+          Text(ref.t('backupDesc'),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(
@@ -206,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: _backingUp
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.file_download, size: 18),
-                label: Text(_backingUp ? 'Backing up...' : 'Backup', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                label: Text(_backingUp ? ref.t('backingUp') : ref.t('backup'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary, foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -221,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: _restoring
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.file_upload, size: 18),
-                label: Text(_restoring ? 'Restoring...' : 'Restore', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                label: Text(_restoring ? ref.t('restoring') : ref.t('restore'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.textMain, foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),

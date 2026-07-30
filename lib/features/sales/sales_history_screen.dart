@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class SalesHistoryScreen extends ConsumerStatefulWidget {
   const SalesHistoryScreen({super.key});
@@ -26,7 +27,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
               if (sales.isEmpty) {
                 return Center(child: Container(
                   padding: const EdgeInsets.all(60),
-                  child: const Text('No orders yet', style: TextStyle(color: AppTheme.textMuted)),
+                  child: Text(context.t('noOrders'), style: const TextStyle(color: AppTheme.textMuted)),
                 ));
               }
               return Column(children: sales.reversed.map((s) => Container(
@@ -46,14 +47,14 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Delete Sale'),
-                                content: Text('Delete sale #${s.invoiceNumber}? This cannot be undone.'),
+                                title: Text(context.t('deleteSale')),
+                                content: Text(context.t('deleteSaleConfirm', {'number': s.invoiceNumber})),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.t('cancel'))),
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, true),
                                     style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                    child: const Text('Delete'),
+                                    child: Text(context.t('delete')),
                                   ),
                                 ],
                               ),

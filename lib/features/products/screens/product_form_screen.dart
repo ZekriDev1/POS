@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:restropos/core/database/app_database.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   final Product? product;
@@ -97,7 +98,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final isEdit = widget.product != null;
     return Scaffold(
       backgroundColor: AppTheme.bgColor,
-      appBar: AppBar(title: Text(isEdit ? 'Edit Product' : 'Add Product'), centerTitle: true),
+      appBar: AppBar(title: Text(isEdit ? ref.t('editProduct') : ref.t('addProduct')), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Center(
@@ -110,19 +111,19 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildField('Product Name', _nameCtrl, required: true),
+                  _buildField(ref.t('productName'), _nameCtrl, required: true),
                   const SizedBox(height: 16),
-                  _buildField('Barcode', _barcodeCtrl),
+                  _buildField(ref.t('barcode'), _barcodeCtrl),
                   const SizedBox(height: 16),
-                  _buildField('Description', _descCtrl),
+                  _buildField(ref.t('description'), _descCtrl),
                   const SizedBox(height: 16),
                   Row(children: [
-                    Expanded(child: _buildField('Cost Price', _costCtrl, keyboardType: TextInputType.number)),
+                    Expanded(child: _buildField(ref.t('costPrice'), _costCtrl, keyboardType: TextInputType.number)),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildField('Selling Price', _priceCtrl, keyboardType: TextInputType.number, required: true)),
+                    Expanded(child: _buildField(ref.t('sellingPrice'), _priceCtrl, keyboardType: TextInputType.number, required: true)),
                   ]),
                   const SizedBox(height: 16),
-                  _buildField('Quantity', _qtyCtrl, keyboardType: TextInputType.number),
+                  _buildField(ref.t('quantity'), _qtyCtrl, keyboardType: TextInputType.number),
                   const SizedBox(height: 16),
                   _buildCategoryDropdown(),
                   const SizedBox(height: 16),
@@ -138,7 +139,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(isEdit ? 'Update Product' : 'Save Product', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      child: Text(isEdit ? ref.t('updateProduct') : ref.t('saveProduct'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -159,7 +160,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         TextFormField(
           controller: ctrl,
           keyboardType: keyboardType,
-          validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+          validator: required ? (v) => (v == null || v.isEmpty) ? ref.t('required') : null : null,
           decoration: InputDecoration(
             filled: true, fillColor: AppTheme.bgColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -186,7 +187,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+              Text(ref.t('category'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
               const Spacer(),
               GestureDetector(
                 onTap: () => _addCategory(),
@@ -196,10 +197,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     color: AppTheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.add, size: 14, color: AppTheme.primary),
-                    SizedBox(width: 4),
-                    Text('New', style: TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.add, size: 14, color: AppTheme.primary),
+                    const SizedBox(width: 4),
+                    Text(ref.t('newCategory'), style: TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ),
@@ -212,7 +213,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 return DropdownButtonFormField<String>(
                   value: _categoryId,
                   items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('None')),
+                    DropdownMenuItem<String>(value: null, child: Text(ref.t('noneTop'))),
                     ...parents.asMap().entries.expand((e) {
                       final p = e.value;
                       final subs = e.key < allSubs.length ? allSubs[e.key] : <dynamic>[];
@@ -260,7 +261,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     showDialog(context: context, builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
-        title: const Text('Add Category'),
+        title: Text(ref.t('addCategory')),
         content: SizedBox(
           width: 400,
           child: SingleChildScrollView(
@@ -270,14 +271,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               children: [
                 TextField(
                   controller: ctrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Category name',
+                  decoration: InputDecoration(
+                    hintText: ref.t('categoryName'),
                     filled: true, fillColor: AppTheme.bgColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Icon', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('icon'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   GestureDetector(onTap: () => setDialogState(() => selectedIcon = null),
@@ -313,7 +314,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   }),
                 ]),
                 const SizedBox(height: 16),
-                const Text('Parent Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('parentCategory'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 FutureBuilder(
                   future: ref.read(databaseProvider).getParentCategories(),
@@ -322,7 +323,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     return DropdownButtonFormField<String?>(
                       value: selectedParent,
                       items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('None (top-level)')),
+                        DropdownMenuItem<String?>(value: null, child: Text(ref.t('noneTop'))),
                         ...parents.map((p) => DropdownMenuItem<String?>(value: p.id, child: Text(p.name))),
                       ],
                       onChanged: (v) => setDialogState(() => selectedParent = v),
@@ -338,7 +339,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
           TextButton(onPressed: () async {
             if (ctrl.text.trim().isEmpty) return;
             final db = ref.read(databaseProvider);
@@ -346,7 +347,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             await db.createCategory(id: id, name: ctrl.text.trim(), icon: selectedIcon, parentId: selectedParent);
             if (ctx.mounted) Navigator.pop(ctx);
             setState(() => _categoryId = id);
-          }, child: const Text('Add')),
+          }, child: Text(ref.t('addCategory'))),
         ],
       ),
     ));
@@ -356,7 +357,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Image', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+        Text(ref.t('image'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: _pickImage,

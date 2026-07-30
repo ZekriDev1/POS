@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class InvoiceScreen extends StatefulWidget {
   const InvoiceScreen({super.key});
@@ -53,7 +54,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
     await prefs.setString('invoice_footer', _footerCtrl.text);
     await prefs.setBool('invoice_show_tax', _showTax);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invoice settings saved')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('invoiceSaved'))));
     }
   }
 
@@ -73,24 +74,24 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _field('Company / Store Name', _companyCtrl),
+                  _field(context.t('companyName'), _companyCtrl),
                   const SizedBox(height: 16),
                   Row(children: [
-                    Expanded(child: _field('Phone', _phoneCtrl)),
+                    Expanded(child: _field(context.t('phone'), _phoneCtrl)),
                     const SizedBox(width: 16),
-                    Expanded(child: _field('TVA Number', _tvaCtrl)),
+                    Expanded(child: _field(context.t('tvaNumber'), _tvaCtrl)),
                   ]),
                   const SizedBox(height: 16),
-                  _field('Address', _addressCtrl),
+                  _field(context.t('address'), _addressCtrl),
                   const SizedBox(height: 16),
                   Row(children: [
-                    Expanded(child: _field('TVA Rate (%)', _tvaRateCtrl)),
+                    Expanded(child: _field(context.t('tvaRate'), _tvaRateCtrl)),
                     const SizedBox(width: 16),
-                    Expanded(child: _field('Footer', _footerCtrl)),
+                    Expanded(child: _field(context.t('footer'), _footerCtrl)),
                   ]),
                   const SizedBox(height: 16),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    const Text('Show TVA on invoice', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                    Text(context.t('showTva'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                     Switch(
                       value: _showTax,
                       onChanged: (v) => setState(() => _showTax = v),
@@ -107,7 +108,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Save Invoice Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      child: Text(context.t('saveInvoice'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],

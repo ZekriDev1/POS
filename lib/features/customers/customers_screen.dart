@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -19,11 +20,11 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Customers', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+            Text(ref.t('customers'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
             ElevatedButton.icon(
               onPressed: _addCustomer,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Customer'),
+              label: Text(ref.t('addCustomer')),
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             ),
           ]),
@@ -33,7 +34,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             builder: (ctx, snap) {
               final customers = snap.data ?? <dynamic>[];
               if (customers.isEmpty) {
-                return const Center(child: Padding(padding: EdgeInsets.all(60), child: Text('No customers yet', style: TextStyle(color: AppTheme.textMuted))));
+                return Center(child: Padding(padding: const EdgeInsets.all(60), child: Text(ref.t('noCustomers'), style: const TextStyle(color: AppTheme.textMuted))));
               }
               return Column(children: customers.map((c) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -56,16 +57,16 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     final phoneCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Add Customer'),
+      title: Text(ref.t('addCustomer')),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: nameCtrl, decoration: const InputDecoration(hintText: 'Name', labelText: 'Name')),
+        TextField(controller: nameCtrl, decoration: InputDecoration(hintText: ref.t('name'), labelText: ref.t('name'))),
         const SizedBox(height: 12),
-        TextField(controller: phoneCtrl, decoration: const InputDecoration(hintText: 'Phone', labelText: 'Phone')),
+        TextField(controller: phoneCtrl, decoration: InputDecoration(hintText: ref.t('phone'), labelText: ref.t('phone'))),
         const SizedBox(height: 12),
-        TextField(controller: emailCtrl, decoration: const InputDecoration(hintText: 'Email', labelText: 'Email')),
+        TextField(controller: emailCtrl, decoration: InputDecoration(hintText: ref.t('email'), labelText: ref.t('email'))),
       ]),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
         TextButton(onPressed: () async {
           if (nameCtrl.text.trim().isEmpty) return;
           await ref.read(databaseProvider).createCustomer(
@@ -76,7 +77,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           );
           if (ctx.mounted) Navigator.pop(ctx);
           setState(() {});
-        }, child: const Text('Save')),
+        }, child: Text(ref.t('save'))),
       ],
     ));
   }

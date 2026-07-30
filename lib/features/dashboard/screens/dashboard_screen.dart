@@ -5,6 +5,7 @@ import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
 import 'package:restropos/features/dashboard/widgets/stat_card.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -20,6 +21,9 @@ class DashboardScreen extends ConsumerWidget {
           FutureBuilder<Map<String, dynamic>>(
             future: _loadStats(db),
             builder: (ctx, snap) {
+              if (snap.hasError) {
+                return Center(child: Text('${snap.error}', style: const TextStyle(color: Colors.red)));
+              }
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -29,21 +33,21 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   Wrap(spacing: 16, runSpacing: 16,
                     children: [
-                      SizedBox(width: 220, child: StatCard(title: 'Total Products', value: '${s['products']}', icon: Icons.inventory_2)),
-                      SizedBox(width: 220, child: StatCard(title: 'Categories', value: '${s['categories']}', icon: Icons.category)),
-                      SizedBox(width: 220, child: StatCard(title: "Today's Sales", value: CurrencyFormatter.format(s['todaySales'] as double), icon: Icons.payments)),
-                      SizedBox(width: 220, child: StatCard(title: 'Total Orders', value: '${s['totalOrders']}', icon: Icons.receipt_long)),
-                      SizedBox(width: 220, child: StatCard(title: 'Items Sold', value: '${s['itemsSold']}', icon: Icons.shopping_cart_checkout)),
-                      SizedBox(width: 220, child: StatCard(title: 'Total Revenue', value: CurrencyFormatter.format(s['totalRevenue'] as double), icon: Icons.account_balance_wallet)),
-                      SizedBox(width: 220, child: StatCard(title: 'Monthly Revenue', value: CurrencyFormatter.format(s['monthlyRevenue'] as double), icon: Icons.trending_up)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('totalProducts'), value: '${s['products']}', icon: Icons.inventory_2)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('totalCategories'), value: '${s['categories']}', icon: Icons.category)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('todaySales'), value: CurrencyFormatter.format((s['todaySales'] as num).toDouble()), icon: Icons.payments)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('totalOrders'), value: '${s['totalOrders']}', icon: Icons.receipt_long)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('itemsSold'), value: '${s['itemsSold']}', icon: Icons.shopping_cart_checkout)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('totalRevenue'), value: CurrencyFormatter.format((s['totalRevenue'] as num).toDouble()), icon: Icons.account_balance_wallet)),
+                      SizedBox(width: 220, child: StatCard(title: context.t('monthlyRevenue'), value: CurrencyFormatter.format((s['monthlyRevenue'] as num).toDouble()), icon: Icons.trending_up)),
                     ],
                   ),
                   const SizedBox(height: 32),
-                  const Text('Low Stock Products', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(context.t('lowStock'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   _LowStockList(db: db),
                   const SizedBox(height: 32),
-                  const Text('Recent Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(context.t('recentOrders'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   _RecentOrders(db: db),
                 ],
@@ -56,21 +60,23 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Future<Map<String, dynamic>> _loadStats(AppDatabase db) async {
-    final products = await db.getProductCount();
-    final categories = await db.getCategoryCount();
-    final todaySales = await db.getTodayRevenue();
-    final totalOrders = await db.getTodaySaleCount();
-    final itemsSold = await db.getTotalItemsSold();
-    final totalRevenue = await db.getTotalRevenue();
-    final monthlyRevenue = await db.getMonthlyRevenue();
+    int p, c, o, i;
+    double ts, tr, mr;
+    try { p = await db.getProductCount(); } catch (_) { p = 0; }
+    try { c = await db.getCategoryCount(); } catch (_) { c = 0; }
+    try { ts = await db.getTodayRevenue(); } catch (_) { ts = 0.0; }
+    try { o = await db.getTodaySaleCount(); } catch (_) { o = 0; }
+    try { i = await db.getTotalItemsSold(); } catch (_) { i = 0; }
+    try { tr = await db.getTotalRevenue(); } catch (_) { tr = 0.0; }
+    try { mr = await db.getMonthlyRevenue(); } catch (_) { mr = 0.0; }
     return {
-      'products': products,
-      'categories': categories,
-      'todaySales': todaySales,
-      'totalOrders': totalOrders,
-      'itemsSold': itemsSold,
-      'totalRevenue': totalRevenue,
-      'monthlyRevenue': monthlyRevenue,
+      'products': p,
+      'categories': c,
+      'todaySales': ts,
+      'totalOrders': o,
+      'itemsSold': i,
+      'totalRevenue': tr,
+      'monthlyRevenue': mr,
     };
   }
 }
@@ -84,12 +90,19 @@ class _LowStockList extends StatelessWidget {
     return FutureBuilder<List<Product>>(
       future: db.getLowStockProducts(5),
       builder: (ctx, snap) {
+        if (snap.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
+            child: Center(child: Text('${snap.error}', style: const TextStyle(color: Colors.red))),
+          );
+        }
         final items = snap.data ?? <Product>[];
         if (items.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
-            child: const Center(child: Text('All products have sufficient stock', style: TextStyle(color: AppTheme.textMuted))),
+            child: Center(child: Text(context.t('stockSufficient'), style: const TextStyle(color: AppTheme.textMuted))),
           );
         }
         return Column(children: items.map((p) => Container(
@@ -97,7 +110,7 @@ class _LowStockList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [Text(p.name), Text('Stock: ${p.quantity}', style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600))],
+            children: [Text(p.name), Text(context.t('stock', {'value': '${p.quantity}'}), style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600))],
           ),
         )).toList());
       },
@@ -114,12 +127,19 @@ class _RecentOrders extends StatelessWidget {
     return FutureBuilder<List<Sale>>(
       future: db.getAllSales(),
       builder: (ctx, snap) {
+        if (snap.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
+            child: Center(child: Text('${snap.error}', style: const TextStyle(color: Colors.red))),
+          );
+        }
         final sales = snap.data ?? <Sale>[];
         if (sales.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
-            child: const Center(child: Text('No orders yet', style: TextStyle(color: AppTheme.textMuted))),
+            child: Center(child: Text(context.t('noOrders'), style: const TextStyle(color: AppTheme.textMuted))),
           );
         }
         final recent = sales.reversed.take(5).toList();

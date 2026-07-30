@@ -68,7 +68,7 @@ class DownloadService {
   }) async {
     final request = http.Request('GET', Uri.parse(url));
     request.headers.addAll({
-      'User-Agent': 'RestroPOS',
+      'User-Agent': 'CashManager',
       'Accept': '*/*',
     });
 

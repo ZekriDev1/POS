@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:restropos/core/services/update/download_service.dart';
 import 'package:restropos/core/services/update/models/release_model.dart';
 import 'package:restropos/core/utils/app_theme.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 Future<bool?> showDownloadProgressDialog(
   BuildContext context, {
@@ -105,7 +106,7 @@ class _DownloadProgressDialogContentState extends State<_DownloadProgressDialogC
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                _completed ? 'Download Complete' : 'Downloading Update...',
+                _completed ? context.t('downloadComplete') : context.t('downloadingUpdate'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain),
               ),
             ),
@@ -145,10 +146,10 @@ class _DownloadProgressDialogContentState extends State<_DownloadProgressDialogC
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _statItem(p.downloadedMb, 'Downloaded'),
-                _statItem(p.speedFormatted, 'Speed'),
-                _statItem(p.remainingFormatted, 'Remaining'),
-                _statItem(p.etaFormatted, 'ETA'),
+                _statItem(p.downloadedMb, context.t('downloaded')),
+                _statItem(p.speedFormatted, context.t('speed')),
+                _statItem(p.remainingFormatted, context.t('remaining')),
+                _statItem(p.etaFormatted, context.t('eta')),
               ],
             ),
           ),
@@ -157,12 +158,12 @@ class _DownloadProgressDialogContentState extends State<_DownloadProgressDialogC
           const SizedBox(height: 32),
           const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
           const SizedBox(height: 16),
-          const Text('Starting download...',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+          Text(context.t('startingDownload'),
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
         ],
         if (_completed) ...[
           const SizedBox(height: 20),
-          const Text('Update downloaded successfully. Installing...',
+          Text(context.t('downloadSuccess'),
               style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
           const SizedBox(height: 8),
           const SizedBox(
@@ -188,11 +189,11 @@ class _DownloadProgressDialogContentState extends State<_DownloadProgressDialogC
           child: const Icon(Icons.error_outline, color: AppTheme.danger, size: 28),
         ),
         const SizedBox(height: 14),
-        const Text('Download Failed',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+        Text(context.t('downloadFailed'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
         const SizedBox(height: 8),
         Text(
-          _errorMessage ?? 'An unexpected error occurred',
+          _errorMessage ?? context.t('downloadError'),
           textAlign: TextAlign.center,
           style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
         ),
@@ -207,7 +208,7 @@ class _DownloadProgressDialogContentState extends State<_DownloadProgressDialogC
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Close', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            child: Text(context.t('close'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         ),
       ],

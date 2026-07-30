@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:restropos/core/services/update/models/release_model.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'download_progress_dialog.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 Future<bool?> showUpdateDialog(
   BuildContext context, {
@@ -75,9 +76,9 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                   child: const Icon(Icons.system_update, color: AppTheme.primary, size: 28),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'New Update Available',
+                    context.t('newUpdate'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -96,23 +97,23 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
               ),
               child: Column(
                 children: [
-                  _infoRow('Current Version', widget.currentVersion),
+                  _infoRow(context.t('currentVersion'), widget.currentVersion),
                   const SizedBox(height: 10),
-                  _infoRow('Latest Version', widget.release.version),
+                  _infoRow(context.t('latestVersion'), widget.release.version),
                   const SizedBox(height: 10),
-                  _infoRow('Release Date', _formatDate(widget.release.publishedAt)),
+                  _infoRow(context.t('releaseDate'), _formatDate(widget.release.publishedAt)),
                   if (widget.release.fileSize != null) ...[
                     const SizedBox(height: 10),
-                    _infoRow('File Size', _formatSize(widget.release.fileSize!)),
+                    _infoRow(context.t('fileSize'), _formatSize(widget.release.fileSize!)),
                   ],
                 ],
               ),
             ),
             if (widget.release.body.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text(
-                'Release Notes',
-                style: TextStyle(
+              Text(
+                context.t('releaseNotes'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textMuted,
@@ -155,7 +156,7 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       side: const BorderSide(color: AppTheme.borderColor),
                     ),
-                    child: const Text('Later', style: TextStyle(color: AppTheme.textMain)),
+                    child: Text(context.t('later'), style: const TextStyle(color: AppTheme.textMain)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -172,8 +173,8 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       side: const BorderSide(color: AppTheme.borderColor),
                     ),
-                    child: const Text('Never Ask Again',
-                        style: TextStyle(color: AppTheme.textMuted)),
+                    child: Text(context.t('neverAsk'),
+                        style: const TextStyle(color: AppTheme.textMuted)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -209,8 +210,8 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Update Now',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                        : Text(context.t('updateNow'),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],

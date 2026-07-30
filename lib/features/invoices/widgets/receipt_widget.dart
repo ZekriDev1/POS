@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:restropos/core/l10n/translations.dart';
 
 class ReceiptItem {
   final String name;
@@ -160,7 +161,7 @@ class _HeaderSection extends StatelessWidget {
           if (storeTvaNumber != null && storeTvaNumber!.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
-              'TVA: ${storeTvaNumber!}',
+              context.t('tva', {'number': storeTvaNumber!}),
               textAlign: TextAlign.center,
               style: const TextStyle(fontFamily: 'Courier New', fontSize: 11, color: Colors.black87),
             ),
@@ -196,23 +197,23 @@ class _MetaSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(':التاريخ $date', style: style),
-              Text(':الساعة $time', style: style),
+              Text(context.t('receiptDate', {'value': date}), style: style),
+              Text(context.t('receiptTime', {'value': time}), style: style),
             ],
           ),
           const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(':رقم الطلب $orderNumber', style: style),
-              Text(':البائع $cashier', style: style),
+              Text(context.t('receiptOrder', {'value': orderNumber}), style: style),
+              Text(context.t('receiptCashier', {'value': cashier}), style: style),
             ],
           ),
           const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(':طريقة الدفع $paymentMethod', style: style),
+              Text(context.t('receiptPayment', {'value': paymentMethod}), style: style),
               const SizedBox.shrink(),
             ],
           ),
@@ -263,11 +264,11 @@ class _ItemsTable extends StatelessWidget {
                 border: Border(bottom: BorderSide(color: Colors.black, width: 1.5)),
               ),
               children: [
-                _headerCell('المجموع', headerStyle),
-                _headerCell('السعر', headerStyle),
-                _headerCell('السلعة', headerStyle),
-                _headerCell('الوحدة', headerStyle),
-                _headerCell('الكمية', headerStyle),
+                _headerCell(context.t('colTotal'), headerStyle),
+                _headerCell(context.t('colPrice'), headerStyle),
+                _headerCell(context.t('colItem'), headerStyle),
+                _headerCell(context.t('colUnit'), headerStyle),
+                _headerCell(context.t('colQty'), headerStyle),
               ],
             ),
             ...items.map((item) => TableRow(
@@ -285,7 +286,7 @@ class _ItemsTable extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              '(لا توجد عناصر)',
+              context.t('noItems'),
               textAlign: TextAlign.center,
               style: TextStyle(fontFamily: 'Courier New', fontSize: 11, color: Colors.black45),
             ),
@@ -333,9 +334,9 @@ class _TotalsSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         children: [
-          _totalRow('المبلغ قبل الضريبة (HT)', fmt(subtotal), labelStyle, valueStyle),
+          _totalRow(context.t('subtotalHt'), fmt(subtotal), labelStyle, valueStyle),
           const SizedBox(height: 2),
-          _totalRow('الضريبة ($taxRate%)', fmt(taxAmount), labelStyle, valueStyle),
+          _totalRow(context.t('taxLabel', {'rate': '${taxRate}'}), fmt(taxAmount), labelStyle, valueStyle),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -345,8 +346,8 @@ class _TotalsSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'المجموع (TTC)',
+                Text(
+                  context.t('totalTtc'),
                   style: TextStyle(
                     fontFamily: 'Courier New',
                     fontSize: 14,

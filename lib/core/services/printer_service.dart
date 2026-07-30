@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:restropos/core/l10n/translations.dart';
+
+typedef _T = String Function(String key, [Map<String, String>? params]);
 
 class PrinterService {
   static pw.Font? _arabicFont;
@@ -68,6 +71,8 @@ class PrinterService {
     String? footer,
     required bool showTax,
     required double taxRate,
+    String locale = 'ar',
+    String currencySymbol = 'DH',
   }) async {
     final pdf = await _generatePdf(
       companyName: companyName,
@@ -85,6 +90,8 @@ class PrinterService {
       footer: footer,
       showTax: showTax,
       taxRate: taxRate,
+      locale: locale,
+      currencySymbol: currencySymbol,
     );
     await Printing.layoutPdf(
       onLayout: (_) => pdf,
@@ -107,9 +114,13 @@ class PrinterService {
     String? footer,
     required bool showTax,
     required double taxRate,
+    String locale = 'ar',
+    String currencySymbol = 'DH',
   }) async {
     final font = await _getFont();
     final fontBold = await _getFont(bold: true);
+
+    final t = (String key, [Map<String, String>? p]) => Translations.get(key, locale, p);
 
     final pdf = pw.Document();
 
@@ -119,17 +130,17 @@ class PrinterService {
         margin: const pw.EdgeInsets.all(4),
         build: (ctx) => [
           pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
+            textDirection: locale == 'ar' ? pw.TextDirection.rtl : pw.TextDirection.ltr,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(companyName, phone, address, tvaNumber, font, fontBold),
+                _buildHeader(companyName, phone, address, tvaNumber, font, fontBold, t),
                 _dashedDivider(),
-                _buildMeta(invoiceNumber, date, customerName, paymentMethod, font),
+                _buildMeta(invoiceNumber, date, customerName, paymentMethod, font, t),
                 _dashedDivider(),
-                _buildItemTable(items, font, fontBold),
+                _buildItemTable(items, font, fontBold, currencySymbol, t),
                 _dashedDivider(),
-                _buildTotals(subtotal, tax, total, showTax, taxRate, font, fontBold),
+                _buildTotals(subtotal, tax, total, showTax, taxRate, font, fontBold, currencySymbol, t),
                 if (footer != null && footer.isNotEmpty) ...[
                   pw.SizedBox(height: 4),
                   _buildFooter(footer, font),
@@ -144,7 +155,7 @@ class PrinterService {
   }
 
   pw.Widget _buildHeader(String name, String? phone, String? address, String? tva,
-      pw.Font font, pw.Font fontBold) {
+      pw.Font font, pw.Font fontBold, _T t) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 4),
       decoration: const pw.BoxDecoration(
@@ -176,7 +187,7 @@ class PrinterService {
           if (tva != null && tva.isNotEmpty)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 1),
-              child: pw.Text('TVA: $tva',
+              child: pw.Text(t('tva', {'number': tva}),
                   textAlign: pw.TextAlign.center,
                   style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey700)),
             ),
@@ -199,10 +210,10 @@ class PrinterService {
   }
 
   pw.Widget _buildMeta(String invoiceNumber, DateTime date, String? customer,
-      String paymentMethod, pw.Font font) {
+      String paymentMethod, pw.Font font, _T t) {
     final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    final payLabel = paymentMethod == 'cash' ? 'Espèces' : 'Carte';
+    final payLabel = paymentMethod == 'cash' ? t('cashLabel') : t('cardLabel');
     final style = pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey900);
 
     return pw.Container(
@@ -212,23 +223,23 @@ class PrinterService {
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text(':التاريخ $dateStr', style: style),
-              pw.Text(':الساعة $timeStr', style: style),
+              pw.Text(t('receiptDate', {'value': dateStr}), style: style),
+              pw.Text(t('receiptTime', {'value': timeStr}), style: style),
             ],
           ),
           pw.SizedBox(height: 1),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text(':رقم الطلب $invoiceNumber', style: style),
-              if (customer != null) pw.Text(':العميل $customer', style: style),
+              pw.Text(t('receiptOrder', {'value': invoiceNumber}), style: style),
+              if (customer != null) pw.Text('${t('receiptCustomer')}: $customer', style: style),
             ],
           ),
           pw.SizedBox(height: 1),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text(':طريقة الدفع $payLabel', style: style),
+              pw.Text(t('receiptPayment', {'value': payLabel}), style: style),
               pw.SizedBox(),
             ],
           ),
@@ -237,7 +248,7 @@ class PrinterService {
     );
   }
 
-  pw.Widget _buildItemTable(List<InvoiceItem> items, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildItemTable(List<InvoiceItem> items, pw.Font font, pw.Font fontBold, String currencySymbol, _T t) {
     final hStyle = pw.TextStyle(font: fontBold, fontSize: 8, fontWeight: pw.FontWeight.bold);
     final cStyle = pw.TextStyle(font: font, fontSize: 8);
     final border = pw.Border(
@@ -257,11 +268,11 @@ class PrinterService {
             padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 1),
             child: pw.Row(
               children: [
-                pw.Expanded(flex: 5, child: pw.Text('المجموع', style: hStyle, textAlign: pw.TextAlign.center)),
-                pw.Expanded(flex: 4, child: pw.Text('السعر', style: hStyle, textAlign: pw.TextAlign.center)),
-                pw.Expanded(flex: 6, child: pw.Text('السلعة', style: hStyle, textAlign: pw.TextAlign.center)),
-                pw.Expanded(flex: 3, child: pw.Text('الوحدة', style: hStyle, textAlign: pw.TextAlign.center)),
-                pw.Expanded(flex: 3, child: pw.Text('الكمية', style: hStyle, textAlign: pw.TextAlign.center)),
+                pw.Expanded(flex: 5, child: pw.Text(t('colTotal'), style: hStyle, textAlign: pw.TextAlign.center)),
+                pw.Expanded(flex: 4, child: pw.Text(t('colPrice'), style: hStyle, textAlign: pw.TextAlign.center)),
+                pw.Expanded(flex: 6, child: pw.Text(t('colItem'), style: hStyle, textAlign: pw.TextAlign.center)),
+                pw.Expanded(flex: 3, child: pw.Text(t('colUnit'), style: hStyle, textAlign: pw.TextAlign.center)),
+                pw.Expanded(flex: 3, child: pw.Text(t('colQty'), style: hStyle, textAlign: pw.TextAlign.center)),
               ],
             ),
           ),
@@ -271,15 +282,15 @@ class PrinterService {
                 child: pw.Row(
                   children: [
                     pw.Expanded(flex: 5, child: pw.Text(
-                      '${(item.price * item.quantity).toStringAsFixed(2)} DH',
+                      '${(item.price * item.quantity).toStringAsFixed(2)} $currencySymbol',
                       style: cStyle, textAlign: pw.TextAlign.center)),
                     pw.Expanded(flex: 4, child: pw.Text(
-                      '${item.price.toStringAsFixed(2)} DH',
+                      '${item.price.toStringAsFixed(2)} $currencySymbol',
                       style: cStyle, textAlign: pw.TextAlign.center)),
                     pw.Expanded(flex: 6, child: pw.Text(
                       item.name, style: cStyle, textAlign: pw.TextAlign.center)),
                     pw.Expanded(flex: 3, child: pw.Text(
-                      'Unité', style: cStyle, textAlign: pw.TextAlign.center)),
+                      t('unitLabel'), style: cStyle, textAlign: pw.TextAlign.center)),
                     pw.Expanded(flex: 3, child: pw.Text(
                       '${item.quantity}', style: cStyle, textAlign: pw.TextAlign.center)),
                   ],
@@ -291,7 +302,7 @@ class PrinterService {
   }
 
   pw.Widget _buildTotals(double subtotal, double tax, double total, bool showTax,
-      double taxRate, pw.Font font, pw.Font fontBold) {
+      double taxRate, pw.Font font, pw.Font fontBold, String currencySymbol, _T t) {
     final style = pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey900);
     final boldStyle = pw.TextStyle(font: fontBold, fontSize: 12, fontWeight: pw.FontWeight.bold);
 
@@ -302,8 +313,8 @@ class PrinterService {
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text('المبلغ قبل الضريبة (HT)', style: style),
-              pw.Text('${subtotal.toStringAsFixed(2)} DH', style: style),
+              pw.Text(t('subtotalHt'), style: style),
+              pw.Text('${subtotal.toStringAsFixed(2)} $currencySymbol', style: style),
             ],
           ),
           if (showTax && taxRate > 0) ...[
@@ -311,8 +322,8 @@ class PrinterService {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('الضريبة ($taxRate%)', style: style),
-                pw.Text('${tax.toStringAsFixed(2)} DH', style: style),
+                pw.Text(t('taxLabel', {'rate': taxRate.toStringAsFixed(0)}), style: style),
+                pw.Text('${tax.toStringAsFixed(2)} $currencySymbol', style: style),
               ],
             ),
           ],
@@ -325,8 +336,8 @@ class PrinterService {
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('المجموع (TTC)', style: boldStyle),
-                pw.Text('${total.toStringAsFixed(2)} DH', style: boldStyle),
+                pw.Text(t('totalTtc'), style: boldStyle),
+                pw.Text('${total.toStringAsFixed(2)} $currencySymbol', style: boldStyle),
               ],
             ),
           ),

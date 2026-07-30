@@ -5,6 +5,7 @@ import 'package:restropos/core/services/update/update_providers.dart';
 import 'package:restropos/core/services/update/update_service.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'update_dialog.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class UpdateSettingsSection extends ConsumerStatefulWidget {
   const UpdateSettingsSection({super.key});
@@ -43,13 +44,17 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
     switch (state.status) {
       case UpdateStatus.upToDate:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You have the latest version')),
+          SnackBar(content: Text(context.t('upToDateSnack'))),
         );
       case UpdateStatus.updateAvailable:
         _showUpdateDialog(state);
       case UpdateStatus.error:
+        final msg = state.errorMessage;
+        final translated = msg != null
+            ? _translateError(msg)
+            : context.t('updateCheckFailed');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(state.errorMessage ?? 'Update check failed')),
+          SnackBar(content: Text(translated)),
         );
       case UpdateStatus.checking:
         break;
@@ -78,7 +83,7 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
 
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update downloaded successfully. Restarting...')),
+        SnackBar(content: Text(context.t('updateRestarting'))),
       );
     }
   }
@@ -107,23 +112,23 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
                 child: const Icon(Icons.system_update, color: AppTheme.primary, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text('Application Updates',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+              Text(context.t('appUpdates'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
             ],
           ),
           const SizedBox(height: 20),
-          _infoTile('Current Version', state.currentVersion ?? '--'),
+          _infoTile(context.t('currentVersion'), state.currentVersion ?? '--'),
           const SizedBox(height: 10),
-          _infoTile('Latest Version', _latestVersionText(state)),
+          _infoTile(context.t('latestVersion'), _latestVersionText(state)),
           const SizedBox(height: 10),
-          _infoTile('Last Checked', _lastCheckedText(state)),
+          _infoTile(context.t('lastChecked'), _lastCheckedText(state)),
           const SizedBox(height: 20),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Automatically check for updates',
-                style: TextStyle(fontSize: 14, color: AppTheme.textMain)),
-            subtitle: const Text('Check for updates on app startup',
-                style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+            title: Text(context.t('autoCheck'),
+                style: const TextStyle(fontSize: 14, color: AppTheme.textMain)),
+            subtitle: Text(context.t('autoCheckSub'),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             value: true,
             activeColor: AppTheme.primary,
             onChanged: (val) async {
@@ -143,7 +148,7 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.refresh, size: 18),
-              label: Text(_checking ? 'Checking...' : 'Check for Updates',
+              label: Text(_checking ? context.t('checking') : context.t('checkUpdates'),
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
@@ -171,9 +176,9 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
   String _latestVersionText(UpdateState state) {
     switch (state.status) {
       case UpdateStatus.checking:
-        return 'Checking...';
+        return context.t('checking');
       case UpdateStatus.upToDate:
-        return state.release?.version ?? 'Up to date';
+        return state.release?.version ?? context.t('upToDate');
       case UpdateStatus.updateAvailable:
         return state.release?.version ?? '--';
       case UpdateStatus.error:
@@ -181,9 +186,19 @@ class _UpdateSettingsSectionState extends ConsumerState<UpdateSettingsSection> {
     }
   }
 
+  String _translateError(String msg) {
+    if (msg.startsWith('No internet connection')) return context.t('noInternet');
+    if (msg.startsWith('Could not reach GitHub')) return context.t('noGitHub');
+    if (msg.startsWith('Update check failed')) {
+      final error = msg.substring('Update check failed: '.length);
+      return context.t('updateError', {'error': error});
+    }
+    return msg;
+  }
+
   String _lastCheckedText(UpdateState state) {
     final last = state.lastChecked;
-    if (last == null) return 'Never';
+    if (last == null) return context.t('never');
     return DateFormat('MMM dd, yyyy HH:mm').format(last);
   }
 }

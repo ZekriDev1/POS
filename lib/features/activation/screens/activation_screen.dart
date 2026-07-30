@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/license/activation_service.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 final activationServiceProvider = Provider((_) => ActivationService());
 
@@ -49,7 +50,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
   Future<void> _activate() async {
     final key = _keyController.text.trim();
     if (key.isEmpty) {
-      setState(() => _error = 'Please enter an activation key');
+      setState(() => _error = context.t('pleaseEnterKey'));
       return;
     }
     final result = await ref.read(activationStateProvider.notifier).activate(key);
@@ -61,28 +62,28 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: AppTheme.cardBg,
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 28),
-              SizedBox(width: 10),
-              Text('Activation Successful', style: TextStyle(color: AppTheme.textMain)),
+              const Icon(Icons.check_circle, color: Colors.green, size: 28),
+              const SizedBox(width: 10),
+              Text(context.t('activationSuccess'), style: const TextStyle(color: AppTheme.textMain)),
             ],
           ),
-          content: const Text(
-            'Thanks for purchasing the product.\n\nPlease close the app and re-open it to start using RestroPOS.',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => exit(0),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Close & Reopen'),
-            ),
-          ],
+          content: Text(
+             context.t('activationSuccessMsg'),
+             style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
+           ),
+           actions: [
+             ElevatedButton(
+               onPressed: () => exit(0),
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: AppTheme.primary,
+                 foregroundColor: Colors.white,
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+               ),
+               child: Text(context.t('closeReopen')),
+             ),
+           ],
         ),
       );
       return;
@@ -93,25 +94,23 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: AppTheme.cardBg,
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber, color: Colors.orange, size: 28),
-              SizedBox(width: 10),
-              Text('License Already In Use', style: TextStyle(color: AppTheme.textMain)),
-            ],
-          ),
-          content: const Text(
-            'This license is already activated on another device.\n\n'
-            'To transfer the license to this device, please contact support:\n'
-            '+212 6 91 15 73 63',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK', style: TextStyle(color: AppTheme.textMuted)),
-            ),
-          ],
+          title: Row(
+             children: [
+               const Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+               const SizedBox(width: 10),
+               Text(context.t('licenseInUse'), style: const TextStyle(color: AppTheme.textMain)),
+             ],
+           ),
+           content: Text(
+             context.t('licenseInUseMsg'),
+             style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
+           ),
+           actions: [
+             TextButton(
+               onPressed: () => Navigator.pop(ctx),
+               child: Text(context.t('ok'), style: const TextStyle(color: AppTheme.textMuted)),
+             ),
+           ],
         ),
       );
       return;
@@ -121,23 +120,23 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: AppTheme.cardBg,
-        title: const Row(
-          children: [
-            Icon(Icons.error_outline, color: AppTheme.danger, size: 28),
-            SizedBox(width: 10),
-            Text('Activation Failed', style: TextStyle(color: AppTheme.textMain)),
-          ],
-        ),
-        content: const Text(
-          'You need to buy a license.\nPlease contact the support team:\n+212 6 91 15 73 63',
-          style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK', style: TextStyle(color: AppTheme.textMuted)),
-          ),
-        ],
+          title: Row(
+             children: [
+               const Icon(Icons.error_outline, color: AppTheme.danger, size: 28),
+               const SizedBox(width: 10),
+               Text(context.t('activationFailed'), style: const TextStyle(color: AppTheme.textMain)),
+             ],
+           ),
+           content: Text(
+             context.t('activationFailedMsg'),
+             style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
+           ),
+           actions: [
+             TextButton(
+               onPressed: () => Navigator.pop(ctx),
+               child: Text(context.t('ok'), style: const TextStyle(color: AppTheme.textMuted)),
+             ),
+           ],
       ),
     );
   }
@@ -168,14 +167,14 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                 child: const Icon(Icons.point_of_sale, color: Colors.white, size: 32),
               ),
               const SizedBox(height: 24),
-              const Text('RestroPOS', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+              Text(context.t('appTitle'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
               const SizedBox(height: 8),
-              const Text('Activate your license to continue', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+              Text(context.t('activateLicense'), style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
               const SizedBox(height: 32),
               TextField(
                 controller: _keyController,
                 decoration: InputDecoration(
-                  hintText: 'Enter activation key',
+                  hintText: context.t('enterKey'),
                   hintStyle: const TextStyle(color: AppTheme.textMuted),
                   filled: true,
                   fillColor: AppTheme.bgColor,
@@ -194,7 +193,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Activate', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text(context.t('activate'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],

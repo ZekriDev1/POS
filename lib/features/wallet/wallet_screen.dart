@@ -4,6 +4,7 @@ import 'package:restropos/core/database/app_database.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -22,14 +23,14 @@ class WalletScreen extends ConsumerWidget {
             children: [
               if (w != null) ...[
                 Wrap(spacing: 16, runSpacing: 16, children: [
-                  _statBox("Today's Sales", CurrencyFormatter.format(w['todaySales'] as double), Icons.payments),
-                  _statBox('Total Orders', '${w['totalOrders']}', Icons.receipt_long),
-                  _statBox('Items Sold', '${w['itemsSold']}', Icons.shopping_cart_checkout),
+                  _statBox(ref.t('todaySales'), CurrencyFormatter.format(w['todaySales'] as double), Icons.payments),
+                  _statBox(ref.t('totalOrders'), '${w['totalOrders']}', Icons.receipt_long),
+                  _statBox(ref.t('itemsSold'), '${w['itemsSold']}', Icons.shopping_cart_checkout),
                 ]),
                 const SizedBox(height: 32),
-                const Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                Text(ref.t('recentTransactions'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
-                _transactionsList(db),
+                _transactionsList(ref, db),
               ],
             ],
           );
@@ -65,7 +66,7 @@ class WalletScreen extends ConsumerWidget {
     );
   }
 
-  Widget _transactionsList(AppDatabase db) {
+  Widget _transactionsList(WidgetRef ref, AppDatabase db) {
     return FutureBuilder<List<Sale>>(
       future: db.getAllSales(),
       builder: (ctx, snap) {
@@ -74,7 +75,7 @@ class WalletScreen extends ConsumerWidget {
           return Container(
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
-            child: const Center(child: Text('No transactions yet', style: TextStyle(color: AppTheme.textMuted))),
+            child: Center(child: Text(ref.t('noTransactions'), style: const TextStyle(color: AppTheme.textMuted))),
           );
         }
         return Column(children: sales.reversed.take(10).map((s) => Container(

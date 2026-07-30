@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restropos/core/l10n/translations.dart';
 import 'package:restropos/core/services/update/update_providers.dart';
 import 'package:restropos/core/services/update/update_service.dart';
 import 'package:restropos/core/utils/app_theme.dart';
@@ -17,8 +18,9 @@ import 'package:restropos/features/suppliers/suppliers_screen.dart';
 import 'package:restropos/features/inventory/inventory_screen.dart';
 import 'package:restropos/features/settings/settings_screen.dart';
 import 'package:restropos/features/settings/widgets/update_dialog.dart';
+import 'package:restropos/core/remote_access/screens/remote_access_screen.dart';
 
-enum AppView { dashboard, menu, history, wallet, invoice, categories, customers, suppliers, inventory, settings }
+enum AppView { dashboard, menu, history, wallet, invoice, categories, customers, suppliers, inventory, settings, remoteAccess }
 
 final appViewProvider = StateProvider<AppView>((ref) => AppView.dashboard);
 
@@ -69,7 +71,17 @@ class _AppShellState extends ConsumerState<AppShell> {
         onKeyEvent: _handleKey,
         child: Row(
         children: [
-          _Sidebar(currentView: view, onViewChanged: (v) => ref.read(appViewProvider.notifier).state = v),
+          _Sidebar(
+            currentView: view,
+            onViewChanged: (v) => ref.read(appViewProvider.notifier).state = v,
+            labelDashboard: ref.t('dashboard'),
+            labelMenu: ref.t('menu'),
+            labelHistory: ref.t('history'),
+            labelWallet: ref.t('wallet'),
+            labelInvoice: ref.t('invoice'),
+            labelSettings: ref.t('settings'),
+            labelRemoteAccess: ref.t('remoteAccess'),
+          ),
           Expanded(
             child: Column(
               children: [
@@ -80,7 +92,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ],
             ),
           ),
-          if (view == AppView.menu) const BillingPanel(),
+          if (view == AppView.menu) BillingPanel(key: ValueKey(ref.watch(localeProvider))),
         ],
         ),
       ),
@@ -88,32 +100,36 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   String _titleFor(AppView view) {
-    switch (view) {
-      case AppView.dashboard: return 'Dashboard';
-      case AppView.menu: return 'Menu';
-      case AppView.history: return 'History';
-      case AppView.wallet: return 'Wallet';
-      case AppView.invoice: return 'Invoice Settings';
-      case AppView.categories: return 'Categories';
-      case AppView.customers: return 'Customers';
-      case AppView.suppliers: return 'Suppliers';
-      case AppView.inventory: return 'Inventory';
-      case AppView.settings: return 'Settings';
-    }
+    const keys = {
+      AppView.dashboard: 'dashboard',
+      AppView.menu: 'menu',
+      AppView.history: 'history',
+      AppView.wallet: 'wallet',
+      AppView.invoice: 'invoiceSettings',
+      AppView.categories: 'categories',
+      AppView.customers: 'customers',
+      AppView.suppliers: 'suppliers',
+      AppView.inventory: 'inventory',
+      AppView.settings: 'settings',
+      AppView.remoteAccess: 'remoteAccess',
+    };
+    return ref.t(keys[view]!);
   }
 
   Widget _buildContent(AppView view, BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
     switch (view) {
-      case AppView.dashboard: return const DashboardScreen();
-      case AppView.menu: return const PosScreen();
-      case AppView.history: return const SalesHistoryScreen();
-      case AppView.wallet: return const WalletScreen();
-      case AppView.invoice: return const InvoiceScreen();
-      case AppView.categories: return const CategoriesScreen();
-      case AppView.customers: return const CustomersScreen();
-      case AppView.suppliers: return const SuppliersScreen();
-      case AppView.inventory: return const InventoryScreen();
-      case AppView.settings: return const SettingsScreen();
+      case AppView.dashboard: return DashboardScreen(key: ValueKey(locale));
+      case AppView.menu: return PosScreen(key: ValueKey(locale));
+      case AppView.history: return SalesHistoryScreen(key: ValueKey(locale));
+      case AppView.wallet: return WalletScreen(key: ValueKey(locale));
+      case AppView.invoice: return InvoiceScreen(key: ValueKey(locale));
+      case AppView.categories: return CategoriesScreen(key: ValueKey(locale));
+      case AppView.customers: return CustomersScreen(key: ValueKey(locale));
+      case AppView.suppliers: return SuppliersScreen(key: ValueKey(locale));
+      case AppView.inventory: return InventoryScreen(key: ValueKey(locale));
+      case AppView.settings: return SettingsScreen(key: ValueKey(locale));
+      case AppView.remoteAccess: return RemoteAccessScreen(key: ValueKey(locale));
     }
   }
 }
@@ -121,39 +137,65 @@ class _AppShellState extends ConsumerState<AppShell> {
 class _Sidebar extends StatelessWidget {
   final AppView currentView;
   final ValueChanged<AppView> onViewChanged;
-  const _Sidebar({required this.currentView, required this.onViewChanged});
+  final String labelDashboard;
+  final String labelMenu;
+  final String labelHistory;
+  final String labelWallet;
+  final String labelInvoice;
+  final String labelSettings;
+  final String labelRemoteAccess;
+
+  const _Sidebar({
+    required this.currentView,
+    required this.onViewChanged,
+    required this.labelDashboard,
+    required this.labelMenu,
+    required this.labelHistory,
+    required this.labelWallet,
+    required this.labelInvoice,
+    required this.labelSettings,
+    required this.labelRemoteAccess,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
     return SizedBox(
       width: 120,
       child: Material(
         color: AppTheme.cardBg,
-        borderRadius: const BorderRadius.only(topRight: Radius.circular(24), bottomRight: Radius.circular(24)),
+        borderRadius: rtl
+            ? const BorderRadius.only(topLeft: Radius.circular(24), bottomLeft: Radius.circular(24))
+            : const BorderRadius.only(topRight: Radius.circular(24), bottomRight: Radius.circular(24)),
         child: Column(
           children: [
             const SizedBox(height: 32),
             Container(
               width: 48, height: 48,
               decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.point_of_sale, color: Colors.white, size: 24),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset('assets/Logo.png', width: 48, height: 48, fit: BoxFit.cover),
+              ),
             ),
             const SizedBox(height: 24),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _navItem(Icons.dashboard, 'Dashboard', AppView.dashboard),
+                    _navItem(Icons.dashboard, labelDashboard, AppView.dashboard),
                     const SizedBox(height: 6),
-                    _navItem(Icons.menu_book, 'Menu', AppView.menu),
+                    _navItem(Icons.menu_book, labelMenu, AppView.menu),
                     const SizedBox(height: 6),
-                    _navItem(Icons.history, 'History', AppView.history),
+                    _navItem(Icons.history, labelHistory, AppView.history),
                     const SizedBox(height: 6),
-                    _navItem(Icons.account_balance_wallet, 'Wallet', AppView.wallet),
+                    _navItem(Icons.account_balance_wallet, labelWallet, AppView.wallet),
                     const SizedBox(height: 6),
-                    _navItem(Icons.receipt, 'Invoice', AppView.invoice),
+                    _navItem(Icons.receipt, labelInvoice, AppView.invoice),
                     const SizedBox(height: 6),
-                    _navItem(Icons.settings, 'Settings', AppView.settings),
+                    _navItem(Icons.settings, labelSettings, AppView.settings),
+                    const SizedBox(height: 6),
+                    _navItem(Icons.cloud, labelRemoteAccess, AppView.remoteAccess),
                     const SizedBox(height: 12),
                   ],
                 ),
@@ -224,7 +266,7 @@ class _UpdateIcon extends ConsumerWidget {
             );
           } else {
             ref.read(updateStateProvider.notifier).state = const UpdateState(status: UpdateStatus.checking);
-            ref.refresh(updateCheckProvider);
+            ref.invalidate(updateCheckProvider);
           }
         },
         child: Stack(

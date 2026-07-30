@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/database/app_database.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 final _categoryIcons = {
   'category': Icons.category,
@@ -45,11 +46,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Categories', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+            Text(ref.t('categories'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
             ElevatedButton.icon(
               onPressed: _addCategory,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Category'),
+              label: Text(ref.t('addCategory')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary, foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -64,7 +65,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               if (cats.isEmpty) {
                 return Center(child: Container(
                   padding: const EdgeInsets.all(40),
-                  child: const Text('No categories yet', style: TextStyle(color: AppTheme.textMuted)),
+                  child: Text(ref.t('noCategories'), style: const TextStyle(color: AppTheme.textMuted)),
                 ));
               }
               return Column(children: cats.map((c) => _buildCategoryTile(c)).toList());
@@ -159,7 +160,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     showDialog(context: context, builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
-        title: Text(existing != null ? 'Edit Category' : 'Add Category'),
+        title: Text(existing != null ? ref.t('editCategory') : ref.t('addCategory')),
         content: SizedBox(
           width: 400,
           child: SingleChildScrollView(
@@ -169,14 +170,14 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               children: [
                 TextField(
                   controller: ctrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Category name',
+                  decoration: InputDecoration(
+                    labelText: ref.t('categoryName'),
                     filled: true, fillColor: AppTheme.bgColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Icon', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('icon'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: _categoryIcons.entries.map((e) {
                   final active = selectedIcon == e.key;
@@ -194,7 +195,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   );
                 }).toList()),
                 const SizedBox(height: 16),
-                const Text('Parent Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('parentCategory'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 FutureBuilder(
                   future: ref.read(databaseProvider).getParentCategories(),
@@ -203,7 +204,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     return DropdownButtonFormField<String?>(
                       value: selectedParent,
                       items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('None (top-level)')),
+                        DropdownMenuItem<String?>(value: null, child: Text(ref.t('noneTop'))),
                         ...parents.where((p) => p.id != existing?.id).map((p) =>
                           DropdownMenuItem<String?>(value: p.id, child: Text(p.name)),
                         ),
@@ -221,7 +222,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
           TextButton(onPressed: () async {
             if (ctrl.text.trim().isEmpty) return;
             final db = ref.read(databaseProvider);
@@ -237,7 +238,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             }
             if (ctx.mounted) Navigator.pop(ctx);
             setState(() {});
-          }, child: Text(existing != null ? 'Save' : 'Add')),
+          }, child: Text(existing != null ? ref.t('save') : ref.t('addCategory'))),
         ],
       ),
     ));
@@ -250,11 +251,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: const Text('Sub-categories will also be deleted. Continue?'),
+        title: Text(ref.t('deleteCategory')),
+        content: Text(ref.t('deleteCategoryConfirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ref.t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: Text(ref.t('delete'))),
         ],
       ),
     );

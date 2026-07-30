@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -38,8 +38,39 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('ALTER TABLE categories ADD COLUMN icon TEXT');
         await customStatement('ALTER TABLE categories ADD COLUMN parent_id TEXT');
       }
+      if (from < 3) {
+        await _migrateDatesToIntegers();
+      }
     },
   );
+
+  Future<void> _migrateDatesToIntegers() async {
+    for (final entry in [
+      ('products', 'created_at'),
+      ('sales', 'created_at'),
+      ('inventory_history', 'date'),
+    ]) {
+      final table = entry.$1;
+      final col = entry.$2;
+      final idCol = table == 'inventory_history' ? 'id' : 'id';
+      final rows = await customSelect(
+        "SELECT $idCol, $col FROM $table WHERE typeof($col) = 'text'",
+      ).get();
+      for (final row in rows) {
+        final id = row.data[idCol] as String;
+        final raw = row.data[col] as String;
+        try {
+          final dt = DateTime.parse(raw);
+          final unixSeconds = dt.millisecondsSinceEpoch ~/ 1000;
+          await customStatement(
+            'UPDATE $table SET $col = ? WHERE $idCol = ?',
+            [unixSeconds, id],
+          );
+        } catch (_) {
+        }
+      }
+    }
+  }
 
   // ── Products ──
   Future<List<Product>> getAllProducts() => select(products).get();
@@ -344,6 +375,28 @@ class AppDatabase extends _$AppDatabase {
     await close();
     final dest = await databasePath;
     await File(backupPath).copy(dest);
+  }
+
+  Future<List<Map<String, dynamic>>> rawQuery(String sql, {List<Object?>? variables}) async {
+    final rows = variables != null
+        ? await customSelect(sql, variables: variables.map((v) => Variable<Object>(v as Object)).toList()).get()
+        : await customSelect(sql).get();
+    return rows.map((r) => r.data).toList();
+  }
+
+  Future<Map<String, dynamic>?> rawQuerySingle(String sql, {List<Object?>? variables}) async {
+    try {
+      final row = variables != null
+          ? await customSelect(sql, variables: variables.map((v) => Variable<Object>(v as Object)).toList()).getSingle()
+          : await customSelect(sql).getSingle();
+      return row.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> rawExecute(String sql, {List<Object?>? variables}) async {
+    await customStatement(sql, variables);
   }
 }
 

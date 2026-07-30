@@ -6,6 +6,7 @@ import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/license/activation_service.dart';
 import 'package:restropos/features/activation/screens/activation_screen.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class DevMenu extends ConsumerStatefulWidget {
   const DevMenu({super.key});
@@ -83,13 +84,13 @@ class _DevMenuState extends ConsumerState<DevMenu> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('This will deactivate the license on this device. Continue?'),
+        title: Text(context.t('signOutTitle')),
+        content: Text(context.t('signOutConfirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.t('cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign Out', style: TextStyle(color: AppTheme.danger)),
+            child: Text(context.t('signOut'), style: const TextStyle(color: AppTheme.danger)),
           ),
         ],
       ),
@@ -142,8 +143,8 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                   child: const Icon(Icons.developer_mode, color: AppTheme.textMain, size: 28),
                 ),
                 const SizedBox(width: 14),
-                const Text('Developer Menu',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+                Text(context.t('devMenu'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -157,7 +158,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                 child: ElevatedButton.icon(
                   onPressed: _loading ? null : _generateLicense,
                   icon: const Icon(Icons.vpn_key, size: 18),
-                  label: const Text('Generate License'),
+                  label: Text(context.t('generateLicense')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
@@ -171,7 +172,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                 child: ElevatedButton.icon(
                   onPressed: _loading ? null : _dbStats,
                   icon: const Icon(Icons.storage, size: 18),
-                  label: const Text('DB Stats'),
+                  label: Text(context.t('dbStats')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.textMain,
                     foregroundColor: Colors.white,
@@ -185,7 +186,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                 child: ElevatedButton.icon(
                   onPressed: _loading ? null : _signOut,
                   icon: const Icon(Icons.logout, size: 18),
-                  label: const Text('Sign Out'),
+                  label: Text(context.t('signOut')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.danger,
                     foregroundColor: Colors.white,
@@ -202,7 +203,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                   child: TextField(
                     controller: _keyCtrl,
                     decoration: InputDecoration(
-                      hintText: 'License key to check...',
+                      hintText: context.t('licenseCheck'),
                       filled: true, fillColor: AppTheme.bgColor,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -220,7 +221,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Check'),
+                  child: Text(context.t('check')),
                 ),
               ],
             ),
@@ -237,7 +238,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                     ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
                     : SingleChildScrollView(
                         child: SelectableText(
-                          _output.isEmpty ? 'Output will appear here...' : _output,
+                          _output.isEmpty ? context.t('outputHere') : _output,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,

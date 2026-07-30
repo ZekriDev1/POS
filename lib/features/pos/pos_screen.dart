@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/database/app_database.dart';
 import 'package:restropos/core/database/providers.dart';
+import 'package:restropos/core/l10n/translations.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
 import 'package:restropos/features/products/screens/product_form_screen.dart';
@@ -83,7 +84,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 16, left: 24),
+      padding: const EdgeInsetsDirectional.only(start: 24, end: 16),
       child: Row(
         children: [
           Expanded(
@@ -110,7 +111,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       child: TextField(
         controller: _searchCtrl,
         decoration: InputDecoration(
-          hintText: 'Search category or product...',
+          hintText: context.t('searchHint'),
           hintStyle: const TextStyle(color: AppTheme.textMuted),
           prefixIcon: const Icon(Icons.search, color: AppTheme.textMuted),
           filled: true, fillColor: AppTheme.cardBg,
@@ -139,7 +140,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              _buildCatCard('All', null, Icons.grid_view),
+              _buildCatCard(context.t('all'), null, Icons.grid_view),
               ...cats.map((c) => _buildCatCard(c.name, c.id, _catIcons[c.icon] ?? Icons.category)),
             ],
           ),
@@ -154,7 +155,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       onTap: () => setState(() => _selectedCategory = id),
       child: Container(
         width: 80, height: 80,
-        margin: const EdgeInsets.only(right: 12),
+        margin: const EdgeInsetsDirectional.only(end: 12),
         decoration: BoxDecoration(
           color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(20),
@@ -234,7 +235,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               child: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
             const SizedBox(height: 12),
-            Text('Add Product', style: TextStyle(
+            Text(context.t('addProduct'), style: TextStyle(
               fontSize: 14, fontWeight: FontWeight.w600,
               color: AppTheme.primary,
             )),
@@ -277,14 +278,14 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Delete Product'),
-                      content: Text('Are you sure you want to delete "${product.name}"?'),
+                      title: Text(context.t('deleteProduct')),
+                      content: Text(context.t('deleteProductConfirm', {'name': product.name})),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.t('cancel'))),
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, true),
                           style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text('Delete'),
+                          child: Text(context.t('delete')),
                         ),
                       ],
                     ),
@@ -336,7 +337,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-              child: const Text('Add to Billing', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              child: Text(context.t('addToBilling'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
             ),
           ),
         ],

@@ -8,6 +8,7 @@ import 'package:restropos/features/invoices/widgets/receipt_widget.dart';
 import 'package:restropos/features/pos/pos_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:restropos/core/l10n/translations.dart';
 
 class BillingPanel extends ConsumerWidget {
   const BillingPanel({super.key});
@@ -17,26 +18,29 @@ class BillingPanel extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final notifier = ref.read(cartProvider.notifier);
 
+    final rtl = Directionality.of(context) == TextDirection.rtl;
     return Container(
       width: 360,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.cardBg,
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(24), bottomLeft: Radius.circular(24)),
+        borderRadius: rtl
+            ? const BorderRadius.only(topRight: Radius.circular(24), bottomRight: Radius.circular(24))
+            : const BorderRadius.only(topLeft: Radius.circular(24), bottomLeft: Radius.circular(24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Bills', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+          Text(context.t('bills'), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           Expanded(
             child: cart.items.isEmpty
-                ? const Center(child: Column(
+                ? Center(child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_shopping_cart, size: 48, color: AppTheme.textMuted),
-                      SizedBox(height: 12),
-                      Text('Cart is empty', style: TextStyle(color: AppTheme.textMuted)),
+                      const Icon(Icons.add_shopping_cart, size: 48, color: AppTheme.textMuted),
+                      const SizedBox(height: 12),
+                      Text(context.t('cartEmpty'), style: TextStyle(color: AppTheme.textMuted)),
                     ],
                   ))
                 : ListView.separated(
@@ -80,17 +84,17 @@ class BillingPanel extends ConsumerWidget {
           ),
           if (cart.items.isNotEmpty) ...[
             const Divider(),
-            _summaryRow('Subtotal', CurrencyFormatter.format(cart.subtotal)),
+            _summaryRow(context.t('subtotal'), CurrencyFormatter.format(cart.subtotal)),
             const SizedBox(height: 12),
-            const Text('Payment Method', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+            Text(context.t('paymentMethod'), style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             const SizedBox(height: 8),
             Row(children: [
-              _paymentChip('Cash', cart.paymentMethod == 'cash', () => notifier.setPaymentMethod('cash')),
+              _paymentChip(context.t('cash'), cart.paymentMethod == 'cash', () => notifier.setPaymentMethod('cash')),
               const SizedBox(width: 8),
-              _paymentChip('Card', cart.paymentMethod == 'card', () => notifier.setPaymentMethod('card')),
+              _paymentChip(context.t('card'), cart.paymentMethod == 'card', () => notifier.setPaymentMethod('card')),
             ]),
             const Divider(),
-            _summaryRow('Total', CurrencyFormatter.format(cart.total), bold: true, large: true),
+            _summaryRow(context.t('total'), CurrencyFormatter.format(cart.total), bold: true, large: true),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -103,7 +107,7 @@ class BillingPanel extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
                 ),
-                child: const Text('PRINT BILL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text(context.t('printBill'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -173,7 +177,7 @@ class BillingPanel extends ConsumerWidget {
     final subtotal = cart.subtotal;
 
     final prefs = await SharedPreferences.getInstance();
-    final storeName = prefs.getString('invoice_company') ?? prefs.getString('store_name') ?? 'RestroPOS';
+    final storeName = prefs.getString('invoice_company') ?? prefs.getString('store_name') ?? ref.t('appTitle');
     final phone = prefs.getString('invoice_phone');
     final address = prefs.getString('invoice_address');
     final tvaNumber = prefs.getString('invoice_tva');
@@ -212,11 +216,14 @@ class BillingPanel extends ConsumerWidget {
 
     final nowFormatted = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final paymentLabel = cart.paymentMethod == 'cash' ? 'Espèces' : 'Carte';
+    final paymentLabel = cart.paymentMethod == 'cash' ? context.t('cashLabel') : context.t('cardLabel');
 
     final items = cart.items
-        .map((i) => ReceiptItem(name: i.name, unit: 'Unité', quantity: i.quantity, price: i.price))
+        .map((i) => ReceiptItem(name: i.name, unit: context.t('unitLabel'), quantity: i.quantity, price: i.price))
         .toList();
+
+    final printLocale = Localizations.localeOf(context).languageCode;
+    final printCurrency = prefs.getString('currency_symbol') ?? 'DH';
 
     if (context.mounted) {
       await showDialog(
@@ -238,6 +245,7 @@ class BillingPanel extends ConsumerWidget {
               items: items,
               taxRate: showTax ? taxRate : 0,
               footerMessage: footer?.isNotEmpty == true ? footer : null,
+              currencySymbol: printCurrency,
             ),
             onPrint: () {
               Navigator.of(ctx).pop();
@@ -260,6 +268,8 @@ class BillingPanel extends ConsumerWidget {
                 footer: footer,
                 showTax: showTax,
                 taxRate: taxRate,
+                locale: printLocale,
+                currencySymbol: printCurrency,
               );
             },
           ),
@@ -300,13 +310,13 @@ class _ReceiptPreviewDialog extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Receipt Preview',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Text(
+                  context.t('receiptPreview'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 IconButton(
                   icon: const Icon(Icons.print_outlined),
-                  tooltip: 'Print',
+                  tooltip: context.t('print'),
                   onPressed: onPrint,
                 ),
               ],
@@ -328,13 +338,13 @@ class _ReceiptPreviewDialog extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
+                  child: Text(context.t('close')),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: onPrint,
                   icon: const Icon(Icons.print, size: 18),
-                  label: const Text('Print'),
+                  label: Text(context.t('print')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF7A00),
                     foregroundColor: Colors.white,

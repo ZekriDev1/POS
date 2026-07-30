@@ -26,7 +26,7 @@ class GitHubApi {
 
   Map<String, String> get _headers => {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'RestroPOS',
+        'User-Agent': 'CashManager',
       };
 
   Future<ReleaseModel> getLatestRelease() async {

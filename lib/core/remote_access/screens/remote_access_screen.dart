@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:restropos/core/l10n/translations.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/database/app_database.dart';
@@ -197,11 +199,11 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
             Row(
               children: [
                 _iconBtn(Icons.copy, ref.t('copyUrl'), () {
-                  // copy to clipboard
+                  Clipboard.setData(ClipboardData(text: state.publicUrl!));
                 }),
                 const SizedBox(width: 8),
                 _iconBtn(Icons.open_in_new, ref.t('openUrl'), () {
-                  // launch URL
+                  launchUrl(Uri.parse(state.publicUrl!));
                 }),
                 const SizedBox(width: 8),
                 _iconBtn(Icons.refresh, ref.t('refreshUrl'), () {

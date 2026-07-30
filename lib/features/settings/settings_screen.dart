@@ -178,6 +178,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildBackupCard(),
             const SizedBox(height: 24),
             const UpdateSettingsSection(),
+            const SizedBox(height: 24),
+            _buildCopyrightCard(),
           ],
         ),
       ),
@@ -282,6 +284,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ]),
         ],
       ),
+    );
+  }
+
+  Widget _buildCopyrightCard() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 440),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(24)),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: const Icon(Icons.copyright, color: AppTheme.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Akram Zekri', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+              const SizedBox(height: 2),
+              Text('+212 691157363', style: const TextStyle(fontSize: 13, color: AppTheme.primary)),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 

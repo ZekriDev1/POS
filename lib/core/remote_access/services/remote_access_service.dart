@@ -14,7 +14,7 @@ import 'package:restropos/core/database/app_database.dart';
 import 'package:restropos/core/remote_access/database/remote_access_db.dart';
 import 'package:restropos/core/remote_access/services/auth_service.dart';
 import 'package:restropos/core/remote_access/services/api_service.dart';
-import 'package:restropos/core/remote_access/services/cloudflare_tunnel_service.dart';
+import 'package:restropos/core/remote_access/services/tunnel_service.dart';
 import 'package:restropos/core/remote_access/models/remote_access_models.dart';
 
 class RemoteAccessService {
@@ -22,7 +22,7 @@ class RemoteAccessService {
   late final RemoteAccessTables _tables;
   late final AuthService _auth;
   late final ApiService _api;
-  late final CloudflareTunnelService _tunnel;
+  late final TunnelService _tunnel;
   HttpServer? _httpServer;
   bool _initialized = false;
 
@@ -31,7 +31,7 @@ class RemoteAccessService {
 
   RemoteAccessService(this._appDb) {
     _tables = RemoteAccessTables(_appDb);
-    _tunnel = CloudflareTunnelService();
+    _tunnel = TunnelService();
   }
 
   Stream<RemoteAccessState> get stateStream => _stateController.stream;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:restropos/features/settings/widgets/update_settings_section.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -109,6 +110,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+            const UpdateSettingsSection(),
           ],
         ),
       ),

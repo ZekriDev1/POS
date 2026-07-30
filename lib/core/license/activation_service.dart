@@ -77,6 +77,7 @@ class ActivationService {
       return ActivationResult(
         success: false,
         message: data?['message'] ?? 'Invalid license key',
+        code: data?['code'] as String?,
       );
     } catch (e) {
       return ActivationResult(
@@ -85,10 +86,19 @@ class ActivationService {
       );
     }
   }
+
+  Future<void> deactivate() async {
+    _cached = null;
+    final file = File(await _activationPath);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
 }
 
 class ActivationResult {
   final bool success;
   final String? message;
-  const ActivationResult({required this.success, this.message});
+  final String? code;
+  const ActivationResult({required this.success, this.message, this.code});
 }

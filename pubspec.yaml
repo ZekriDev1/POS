@@ -24,6 +24,8 @@ dependencies:
   printing: ^5.14.2
   image_picker: ^1.1.2
   cupertino_icons: ^1.0.8
+  http: ^1.2.0
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

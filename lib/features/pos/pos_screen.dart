@@ -4,6 +4,7 @@ import 'package:restropos/core/database/app_database.dart';
 import 'package:restropos/core/database/providers.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/core/utils/currency_formatter.dart';
+import 'package:restropos/features/products/screens/product_form_screen.dart';
 
 final cartProvider = StateNotifierProvider<CartNotifier, CartState>((ref) {
   return CartNotifier();
@@ -175,8 +176,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
-          itemCount: products.length,
-          itemBuilder: (ctx, i) => _buildProductCard(products[i]),
+          itemCount: products.length + 1,
+          itemBuilder: (ctx, i) {
+            if (i == 0) return _buildAddCard();
+            return _buildProductCard(products[i - 1]);
+          },
         );
       },
     );
@@ -186,6 +190,43 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     if (query.isNotEmpty) return db.searchProducts(query);
     if (_selectedCategory != null) return db.getProductsByCategory(_selectedCategory!);
     return db.getAllProducts();
+  }
+
+  Widget _buildAddCard() {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+        );
+        setState(() {});
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3), width: 2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text('Add Product', style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600,
+              color: AppTheme.primary,
+            )),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildProductCard(dynamic product) {

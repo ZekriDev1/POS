@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restropos/core/utils/app_theme.dart';
@@ -20,15 +21,11 @@ class ActivationNotifier extends StateNotifier<AsyncValue<bool>> {
     state = AsyncData(activated);
   }
 
-  Future<String?> activate(String key) async {
+  Future<ActivationResult> activate(String key) async {
     state = const AsyncLoading();
     final result = await _service.activate(key);
-    if (result.success) {
-      state = const AsyncData(true);
-      return null;
-    }
-    state = const AsyncData(false);
-    return result.message;
+    state = AsyncData(result.success);
+    return result;
   }
 }
 
@@ -55,8 +52,94 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
       setState(() => _error = 'Please enter an activation key');
       return;
     }
-    final error = await ref.read(activationStateProvider.notifier).activate(key);
-    setState(() => _error = error);
+    final result = await ref.read(activationStateProvider.notifier).activate(key);
+    if (!mounted) return;
+    if (result.success) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: AppTheme.cardBg,
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 10),
+              Text('Activation Successful', style: TextStyle(color: AppTheme.textMain)),
+            ],
+          ),
+          content: const Text(
+            'Thanks for purchasing the product.\n\nPlease close the app and re-open it to start using RestroPOS.',
+            style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => exit(0),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Close & Reopen'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    if (result.code == 'ALREADY_USED') {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: AppTheme.cardBg,
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text('License Already In Use', style: TextStyle(color: AppTheme.textMain)),
+            ],
+          ),
+          content: const Text(
+            'This license is already activated on another device.\n\n'
+            'To transfer the license to this device, please contact support:\n'
+            '+212 6 91 15 73 63',
+            style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppTheme.cardBg,
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: AppTheme.danger, size: 28),
+            SizedBox(width: 10),
+            Text('Activation Failed', style: TextStyle(color: AppTheme.textMain)),
+          ],
+        ),
+        content: const Text(
+          'You need to buy a license.\nPlease contact the support team:\n+212 6 91 15 73 63',
+          style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

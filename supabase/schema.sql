@@ -5,6 +5,21 @@
 -- TABLES
 -- ============================================
 
+CREATE TABLE IF NOT EXISTS licenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  license_key TEXT NOT NULL UNIQUE,
+  device_id TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  is_lifetime BOOLEAN NOT NULL DEFAULT true,
+  max_devices INTEGER NOT NULL DEFAULT 1,
+  activated_at TIMESTAMPTZ,
+  last_validated_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);
+
 CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL

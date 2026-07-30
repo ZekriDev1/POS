@@ -5,13 +5,14 @@ import 'package:restropos/app_shell.dart';
 import 'package:restropos/core/license/activation_service.dart';
 import 'package:restropos/core/utils/app_theme.dart';
 import 'package:restropos/features/activation/screens/activation_screen.dart';
+import 'package:restropos/core/services/update/update_providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'YOUR_SUPABASE_URL',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY',
+    url: 'https://pyyprebhtuwmyxkpzosj.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eXByZWJodHV3bXl4a3B6b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNTcxMDEsImV4cCI6MjEwMDkzMzEwMX0.ddr52weOXuGi0wVsnzhzYrHjzEHi6xt2V49l_PcgxVo',
   );
 
   runApp(const ProviderScope(child: RestroPOSApp()));
@@ -67,6 +68,8 @@ class _AppEntryState extends ConsumerState<AppEntry> {
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
-    return _activated ? const AppShell() : const ActivationScreen();
+    if (!_activated) return const ActivationScreen();
+    ref.listen(updateCheckProvider, (prev, next) {});
+    return const AppShell();
   }
 }

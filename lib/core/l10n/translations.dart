@@ -26,7 +26,13 @@ class LocaleNotifier extends StateNotifier<Locale> {
 
 extension TranslateX on BuildContext {
   String t(String key, [Map<String, String>? params]) {
-    return Translations.get(key, Localizations.localeOf(this).languageCode, params);
+    String code;
+    try {
+      code = ProviderScope.containerOf(this).read(localeProvider).languageCode;
+    } catch (_) {
+      code = Localizations.localeOf(this).languageCode;
+    }
+    return Translations.get(key, code, params);
   }
 }
 
@@ -197,6 +203,34 @@ class Translations {
     'save': {'en': 'Save', 'ar': 'حفظ', 'fr': 'Enregistrer'},
     'deleteCategory': {'en': 'Delete Category', 'ar': 'حذف التصنيف', 'fr': 'Supprimer catégorie'},
     'deleteCategoryConfirm': {'en': 'Sub-categories will also be deleted. Continue?', 'ar': 'سيتم حذف التصنيفات الفرعية أيضاً. هل تريد المتابعة؟', 'fr': 'Les sous-catégories seront également supprimées. Continuer ?'},
+
+    // ── Categories (POS dialogs) ──
+    'add': {'en': 'Add', 'ar': 'إضافة', 'fr': 'Ajouter'},
+    'saveChanges': {'en': 'Save Changes', 'ar': 'حفظ التغييرات', 'fr': 'Enregistrer les modifications'},
+    'newSubCategory': {'en': 'New Sub-Category', 'ar': 'تصنيف فرعي جديد', 'fr': 'Nouvelle sous-catégorie'},
+    'subCategoryName': {'en': 'Sub-category name', 'ar': 'اسم التصنيف الفرعي', 'fr': 'Nom de la sous-catégorie'},
+    'renameSubCategory': {'en': 'Rename Sub-Category', 'ar': 'إعادة تسمية التصنيف الفرعي', 'fr': 'Renommer la sous-catégorie'},
+    'deleteCategoryMsg': {'en': 'Delete "{name}"?', 'ar': 'حذف "{name}"؟', 'fr': 'Supprimer "{name}" ?'},
+    'uncategorizeWarning': {'en': 'Products in this category will become uncategorized.', 'ar': 'ستصبح المنتجات في هذا التصنيف غير مصنفة.', 'fr': 'Les produits de cette catégorie deviendront non catégorisés.'},
+    'subCatDeletedOne': {'en': '{count} sub-category will also be deleted.', 'ar': 'سيتم حذف تصنيف فرعي واحد أيضاً.', 'fr': '{count} sous-catégorie sera également supprimée.'},
+    'subCatsDeletedMany': {'en': '{count} sub-categories will also be deleted.', 'ar': 'سيتم حذف {count} تصنيفات فرعية أيضاً.', 'fr': '{count} sous-catégories seront également supprimées.'},
+
+    // ── Remote Access Users ──
+    'users': {'en': 'Users', 'ar': 'المستخدمون', 'fr': 'Utilisateurs'},
+    'addUser': {'en': 'Add User', 'ar': 'إضافة مستخدم', 'fr': 'Ajouter un utilisateur'},
+    'createUser': {'en': 'Create User', 'ar': 'إنشاء مستخدم', 'fr': 'Créer un utilisateur'},
+    'editUser': {'en': 'Edit User', 'ar': 'تعديل المستخدم', 'fr': 'Modifier l\'utilisateur'},
+    'username': {'en': 'Username', 'ar': 'اسم المستخدم', 'fr': 'Nom d\'utilisateur'},
+    'password': {'en': 'Password', 'ar': 'كلمة المرور', 'fr': 'Mot de passe'},
+    'newPasswordKeep': {'en': 'New Password (leave blank to keep)', 'ar': 'كلمة مرور جديدة (اتركها فارغة للإبقاء)', 'fr': 'Nouveau mot de passe (laisser vide pour conserver)'},
+    'role': {'en': 'Role', 'ar': 'الدور', 'fr': 'Rôle'},
+    'create': {'en': 'Create', 'ar': 'إنشاء', 'fr': 'Créer'},
+    'noUsers': {'en': 'No users created yet', 'ar': 'لا يوجد مستخدمون بعد', 'fr': 'Aucun utilisateur créé'},
+    'disabledBadge': {'en': '(disabled)', 'ar': '(معطل)', 'fr': '(désactivé)'},
+    'createdOn': {'en': 'Created {date}', 'ar': 'تاريخ الإنشاء {date}', 'fr': 'Créé {date}'},
+    'edit': {'en': 'Edit', 'ar': 'تعديل', 'fr': 'Modifier'},
+    'deleteUser': {'en': 'Delete User', 'ar': 'حذف المستخدم', 'fr': 'Supprimer l\'utilisateur'},
+    'deleteUserConfirm': {'en': 'Delete user "{name}"?', 'ar': 'حذف المستخدم "{name}"؟', 'fr': 'Supprimer l\'utilisateur "{name}" ?'},
 
     // ── Product Form ──
     'productName': {'en': 'Product Name', 'ar': 'اسم المنتج', 'fr': 'Nom produit'},

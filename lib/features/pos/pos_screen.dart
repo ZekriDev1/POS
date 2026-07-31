@@ -160,11 +160,16 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         final subs = snap.data ?? <Category>[];
         return Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: Wrap(spacing: 8, runSpacing: 6, children: [
-            _buildTag(context.t('all'), null, isAll: true),
-            ...subs.map((s) => _buildTag(s.name, s.id, icon: _catIcons[s.icon], cat: s)),
-            _buildAddTag(),
-          ]),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 100),
+            child: SingleChildScrollView(
+              child: Wrap(spacing: 8, runSpacing: 6, children: [
+                _buildTag(context.t('all'), null, isAll: true),
+                ...subs.map((s) => _buildTag(s.name, s.id, icon: _catIcons[s.icon], cat: s)),
+                _buildAddTag(),
+              ]),
+            ),
+          ),
         );
       },
     );
@@ -240,20 +245,20 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Rename Sub-Category'),
+        title: Text(ref.t('renameSubCategory')),
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: 'Name',
+            labelText: ref.t('name'),
             filled: true, fillColor: AppTheme.bgColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
           ),
           onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: Text(ref.t('save'))),
         ],
       ),
     );
@@ -276,7 +281,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.add, size: 14, color: AppTheme.primary),
           const SizedBox(width: 4),
-          Text('Add', style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+          Text(ref.t('add'), style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
         ]),
       ),
     );
@@ -288,20 +293,20 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('New Sub-Category'),
+        title: Text(ref.t('newSubCategory')),
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'Sub-category name',
+            hintText: ref.t('subCategoryName'),
             filled: true, fillColor: AppTheme.bgColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
           ),
           onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: const Text('Add')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: Text(ref.t('add'))),
         ],
       ),
     );
@@ -420,8 +425,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             const SizedBox(height: 12),
             Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             const SizedBox(height: 8),
-            ListTile(leading: const Icon(Icons.edit, color: AppTheme.primary), title: const Text('Edit Category'), onTap: () => Navigator.pop(ctx, 'edit')),
-            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: const Text('Delete Category', style: TextStyle(color: Colors.red)), onTap: () => Navigator.pop(ctx, 'delete')),
+            ListTile(leading: const Icon(Icons.edit, color: AppTheme.primary), title: Text(ref.t('editCategory')), onTap: () => Navigator.pop(ctx, 'edit')),
+            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text(ref.t('deleteCategory'), style: const TextStyle(color: Colors.red)), onTap: () => Navigator.pop(ctx, 'delete')),
           ]),
         ),
       ),
@@ -442,7 +447,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Edit Category'),
+          title: Text(ref.t('editCategory')),
           content: SizedBox(
             width: 360,
             child: SingleChildScrollView(
@@ -450,18 +455,18 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Category Name',
+                    labelText: ref.t('categoryName'),
                     filled: true, fillColor: AppTheme.bgColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Parent Category', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('parentCategory'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(
                   value: parentId,
                   items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text('None (top-level)')),
+                    DropdownMenuItem<String?>(value: null, child: Text(ref.t('noneTop'))),
                     ...parents.where((p) => p.id != cat.id).map((p) =>
                       DropdownMenuItem<String?>(value: p.id, child: Text(p.name)),
                     ),
@@ -473,7 +478,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Icon', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                Text(ref.t('icon'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: _catIcons.entries.map((e) {
                   final active = icon == e.key;
@@ -494,13 +499,13 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
             TextButton(onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
               await db.updateCategory(id: cat.id, name: nameCtrl.text.trim(), icon: icon, parentId: parentId);
               if (ctx.mounted) Navigator.pop(ctx);
               setState(() {});
-            }, child: const Text('Save Changes')),
+            }, child: Text(ref.t('saveChanges'))),
           ],
         ),
       ),
@@ -514,22 +519,25 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Category'),
+        title: Text(ref.t('deleteCategory')),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Delete "${cat.name}"?'),
+          Text(ref.t('deleteCategoryMsg', {'name': cat.name})),
           const SizedBox(height: 8),
-          Text('Products in this category will become uncategorized.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+          Text(ref.t('uncategorizeWarning'), style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
           if (subCount > 0) ...[
             const SizedBox(height: 4),
-            Text('$subCount sub-categor${subCount == 1 ? 'y' : 'ies'} will also be deleted.', style: TextStyle(fontSize: 13, color: Colors.red.shade400)),
+            Text(
+              ref.t(subCount == 1 ? 'subCatDeletedOne' : 'subCatsDeletedMany', {'count': '$subCount'}),
+              style: TextStyle(fontSize: 13, color: Colors.red.shade400),
+            ),
           ],
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ref.t('cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(ref.t('delete')),
           ),
         ],
       ),

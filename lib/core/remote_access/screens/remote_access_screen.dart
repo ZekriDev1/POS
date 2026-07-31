@@ -401,12 +401,12 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
                 child: const Icon(Icons.person_add, color: AppTheme.primary, size: 20),
               ),
               const SizedBox(width: 12),
-              Text('Users', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+              Text(ref.t('users'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.add_circle, color: AppTheme.primary),
                 onPressed: () => _showUserDialog(),
-                tooltip: 'Add User',
+                tooltip: ref.t('addUser'),
               ),
             ],
           ),
@@ -429,7 +429,7 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(isNew ? 'Create User' : 'Edit User'),
+          title: Text(isNew ? ref.t('createUser') : ref.t('editUser')),
           content: SizedBox(
             width: 300,
             child: Column(
@@ -437,14 +437,14 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
               children: [
                 TextField(
                   controller: usernameController,
-                  decoration: const InputDecoration(labelText: 'Username', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: ref.t('username'), border: const OutlineInputBorder()),
                   enabled: isNew,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: passwordController,
                   decoration: InputDecoration(
-                    labelText: isNew ? 'Password' : 'New Password (leave blank to keep)',
+                    labelText: isNew ? ref.t('password') : ref.t('newPasswordKeep'),
                     border: const OutlineInputBorder(),
                   ),
                   obscureText: true,
@@ -452,7 +452,7 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: roleController.text,
-                  decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: ref.t('role'), border: const OutlineInputBorder()),
                   items: UserRole.values.map((r) => DropdownMenuItem(value: r.name, child: Text(r.name))).toList(),
                   onChanged: (v) => roleController.text = v ?? 'cashier',
                 ),
@@ -460,7 +460,7 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.t('cancel'))),
             TextButton(
               onPressed: () async {
                 final username = usernameController.text.trim();
@@ -476,7 +476,7 @@ class _RemoteAccessScreenState extends ConsumerState<RemoteAccessScreen> {
                   await notifier.updateUserRole(user.id, role);
                 }
               },
-              child: Text(isNew ? 'Create' : 'Save'),
+              child: Text(isNew ? ref.t('create') : ref.t('save')),
             ),
           ],
         ),
@@ -552,9 +552,9 @@ class _UserList extends ConsumerWidget {
         }
         final users = snap.data ?? [];
         if (users.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: Text('No users created yet', style: TextStyle(color: AppTheme.textMuted))),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: Text(ref.t('noUsers'), style: const TextStyle(color: AppTheme.textMuted))),
           );
         }
         return Column(
@@ -583,12 +583,12 @@ class _UserList extends ConsumerWidget {
                             ),
                             if (!u.isActive) ...[
                               const SizedBox(width: 6),
-                              const Text('(disabled)', style: TextStyle(fontSize: 10, color: AppTheme.danger)),
+                              Text(ref.t('disabledBadge'), style: const TextStyle(fontSize: 10, color: AppTheme.danger)),
                             ],
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text('Created ${_formatDateShort(u.createdAt)}',
+                        Text(ref.t('createdOn', {'date': _formatDateShort(u.createdAt)}),
                             style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                       ],
                     ),
@@ -596,7 +596,7 @@ class _UserList extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.edit, size: 16, color: AppTheme.textMuted),
                     onPressed: () => onEdit(u),
-                    tooltip: 'Edit',
+                    tooltip: ref.t('edit'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, size: 16, color: AppTheme.danger),
@@ -604,17 +604,17 @@ class _UserList extends ConsumerWidget {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (c) => AlertDialog(
-                          title: const Text('Delete User'),
-                          content: Text('Delete user "${u.username}"?'),
+                          title: Text(ref.t('deleteUser')),
+                          content: Text(ref.t('deleteUserConfirm', {'name': u.username})),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete', style: TextStyle(color: AppTheme.danger))),
+                            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(ref.t('cancel'))),
+                            TextButton(onPressed: () => Navigator.pop(c, true), child: Text(ref.t('delete'), style: const TextStyle(color: AppTheme.danger))),
                           ],
                         ),
                       );
                       if (confirm == true) await notifier.deleteUser(u.id);
                     },
-                    tooltip: 'Delete',
+                    tooltip: ref.t('delete'),
                   ),
                 ],
               ),

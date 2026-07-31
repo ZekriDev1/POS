@@ -74,6 +74,9 @@ class PosScreen extends ConsumerStatefulWidget {
 class _PosScreenState extends ConsumerState<PosScreen> {
   final _searchCtrl = TextEditingController();
   String? _selectedCategory;
+  String? _selectedParent;
+  String? _hoveredCategoryId;
+  String? _hoveredTagId;
 
   @override
   void dispose() {
@@ -94,7 +97,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 const SizedBox(height: 8),
                 _buildSearchBar(),
                 const SizedBox(height: 12),
-                _buildCategories(),
+                _buildCategoriesRow(),
+                if (_selectedParent != null) ...[
+                  const SizedBox(height: 8),
+                  _buildSubCategoriesRow(),
+                ],
                 const SizedBox(height: 12),
                 Expanded(child: _buildProductGrid()),
               ],
@@ -130,47 +137,412 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     'other': Icons.more_horiz,
   };
 
-  Widget _buildCategories() {
+  Widget _buildCategoriesRow() {
     return FutureBuilder(
-      future: ref.read(databaseProvider).getAllCategories(),
+      future: ref.read(databaseProvider).getParentCategories(),
       builder: (ctx, snap) {
-        final cats = snap.data ?? <dynamic>[];
+        final cats = snap.data ?? <Category>[];
         return SizedBox(
           height: 80,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildCatCard(context.t('all'), null, Icons.grid_view),
-              ...cats.map((c) => _buildCatCard(c.name, c.id, _catIcons[c.icon] ?? Icons.category)),
-            ],
-          ),
+          child: ListView(scrollDirection: Axis.horizontal, children: [
+            _buildCatCard(context.t('all'), null, Icons.grid_view, isParent: true),
+            ...cats.map((c) => _buildCatCard(c.name, c.id, _catIcons[c.icon] ?? Icons.category, cat: c, isParent: true)),
+          ]),
         );
       },
     );
   }
 
-  Widget _buildCatCard(String label, String? id, IconData icon) {
-    final active = _selectedCategory == id;
+  Widget _buildSubCategoriesRow() {
+    return FutureBuilder(
+      future: ref.read(databaseProvider).getSubCategories(_selectedParent!),
+      builder: (ctx, snap) {
+        final subs = snap.data ?? <Category>[];
+        return Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Wrap(spacing: 8, runSpacing: 6, children: [
+            _buildTag(context.t('all'), null, isAll: true),
+            ...subs.map((s) => _buildTag(s.name, s.id, icon: _catIcons[s.icon], cat: s)),
+            _buildAddTag(),
+          ]),
+        );
+      },
+    );
+  }
+
+  Widget _buildTag(String label, String? id, {IconData? icon, bool isAll = false, Category? cat}) {
+    final active = id == null ? _selectedCategory == null : _selectedCategory == id;
+    final editable = cat != null && !isAll;
+    final hovered = _hoveredTagId == id;
+
+    final pill = Container(
+      padding: EdgeInsets.only(left: 14, right: hovered ? 6 : 14, top: 6, bottom: 6),
+      decoration: BoxDecoration(
+        color: active ? AppTheme.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: active ? AppTheme.primary : AppTheme.textMuted.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (isAll) ...[
+          Icon(Icons.arrow_back, size: 14, color: active ? Colors.white : AppTheme.textMuted),
+          const SizedBox(width: 4),
+        ],
+        if (icon != null) ...[
+          Icon(icon, size: 14, color: active ? Colors.white : AppTheme.textMuted),
+          const SizedBox(width: 4),
+        ],
+        Text(label, style: TextStyle(fontSize: 13, color: active ? Colors.white : AppTheme.textMain, fontWeight: FontWeight.w500)),
+        if (editable) ...[
+          const SizedBox(width: 4),
+          AnimatedOpacity(
+            opacity: hovered ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            child: GestureDetector(
+              onTap: () {
+                _hoveredTagId = null;
+                _renameSubCategory(cat);
+              },
+              child: Container(
+                width: 18, height: 18,
+                decoration: BoxDecoration(
+                  color: active ? Colors.white.withValues(alpha: 0.25) : AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.edit, size: 11, color: active ? Colors.white : AppTheme.primary),
+              ),
+            ),
+          ),
+        ],
+      ]),
+    );
+
+    if (!editable) {
+      return GestureDetector(
+        onTap: () => setState(() => _selectedCategory = id),
+        child: pill,
+      );
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoveredTagId = id),
+      onExit: (_) => setState(() => _hoveredTagId = null),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedCategory = id),
+        child: pill,
+      ),
+    );
+  }
+
+  void _renameSubCategory(Category cat) async {
+    final nameCtrl = TextEditingController(text: cat.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Rename Sub-Category'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Name',
+            filled: true, fillColor: AppTheme.bgColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (newName != null && newName.isNotEmpty && newName != cat.name) {
+      await ref.read(databaseProvider).updateCategory(id: cat.id, name: newName, icon: cat.icon, parentId: cat.parentId);
+      setState(() {});
+    }
+  }
+
+  Widget _buildAddTag() {
+    return GestureDetector(
+      onTap: _quickAddSubCategory,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.4), style: BorderStyle.solid),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.add, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 4),
+          Text('Add', style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+        ]),
+      ),
+    );
+  }
+
+  void _quickAddSubCategory() async {
+    final nameCtrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('New Sub-Category'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Sub-category name',
+            filled: true, fillColor: AppTheme.bgColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()), child: const Text('Add')),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty && _selectedParent != null) {
+      await ref.read(databaseProvider).createCategory(
+        id: 'cat${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        icon: null,
+        parentId: _selectedParent,
+      );
+      setState(() {});
+    }
+  }
+
+  Widget _buildCatCard(String label, String? id, IconData icon, {Category? cat, bool isParent = false, bool isSubAll = false}) {
+    final active = isParent ? _selectedParent == id && _selectedCategory == null
+        : id == null ? _selectedParent != null && _selectedCategory == null
+        : _selectedCategory == id;
+    final card = Container(
+      width: isParent ? 80.0 : 68.0,
+      height: isParent ? 80.0 : 60.0,
+      margin: const EdgeInsetsDirectional.only(end: 10),
+      decoration: BoxDecoration(
+        color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(isParent ? 20 : 16),
+        border: Border.all(color: active ? AppTheme.primary : Colors.transparent, width: 2),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: active ? AppTheme.primary : AppTheme.textMuted, size: isParent ? 24 : 20),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(label, style: TextStyle(fontSize: isParent ? 11 : 10, color: active ? AppTheme.primary : AppTheme.textMuted, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+
+    if (cat == null || id == null) {
+      return GestureDetector(onTap: () => setState(() {
+        _selectedCategory = null;
+        _selectedParent = null;
+      }), child: card);
+    }
+
+    if (isParent) {
+      return MouseRegion(
+        onEnter: (_) => setState(() => _hoveredCategoryId = id),
+        onExit: (_) => setState(() => _hoveredCategoryId = null),
+        child: GestureDetector(
+          onTap: () => setState(() {
+            _selectedParent = id;
+            _selectedCategory = null;
+          }),
+          onLongPress: () => _showCatMenu(cat),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              card,
+              Positioned(
+                top: -4, right: -4,
+                child: AnimatedOpacity(
+                  opacity: _hoveredCategoryId == id ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: GestureDetector(
+                    onTap: () {
+                      _hoveredCategoryId = null;
+                      _editCategory(cat);
+                    },
+                    child: Container(
+                      width: 24, height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.35), width: 1),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1))],
+                      ),
+                      child: Icon(Icons.edit, size: 13, color: AppTheme.primary),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (isSubAll) {
+      return GestureDetector(
+        onTap: () => setState(() {
+          _selectedCategory = null;
+        }),
+        child: card,
+      );
+    }
+
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = id),
-      child: Container(
-        width: 80, height: 80,
-        margin: const EdgeInsetsDirectional.only(end: 12),
-        decoration: BoxDecoration(
-          color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppTheme.primary : Colors.transparent, width: 2),
+      child: card,
+    );
+  }
+
+  void _showCatMenu(Category cat) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 32, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 12),
+            Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+            const SizedBox(height: 8),
+            ListTile(leading: const Icon(Icons.edit, color: AppTheme.primary), title: const Text('Edit Category'), onTap: () => Navigator.pop(ctx, 'edit')),
+            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: const Text('Delete Category', style: TextStyle(color: Colors.red)), onTap: () => Navigator.pop(ctx, 'delete')),
+          ]),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: active ? AppTheme.primary : AppTheme.textMuted, size: 24),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 11, color: active ? AppTheme.primary : AppTheme.textMuted, fontWeight: FontWeight.w500)),
+      ),
+    );
+    if (result == 'edit') _editCategory(cat);
+    if (result == 'delete') _deleteCategory(cat);
+  }
+
+  void _editCategory(Category cat) async {
+    final nameCtrl = TextEditingController(text: cat.name);
+    String? icon = cat.icon;
+    String? parentId = cat.parentId;
+    final db = ref.read(databaseProvider);
+    final parents = await db.getParentCategories();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Edit Category'),
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Category Name',
+                    filled: true, fillColor: AppTheme.bgColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Parent Category', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  value: parentId,
+                  items: [
+                    const DropdownMenuItem<String?>(value: null, child: Text('None (top-level)')),
+                    ...parents.where((p) => p.id != cat.id).map((p) =>
+                      DropdownMenuItem<String?>(value: p.id, child: Text(p.name)),
+                    ),
+                  ],
+                  onChanged: (v) => setDialogState(() => parentId = v),
+                  decoration: const InputDecoration(
+                    filled: true, fillColor: AppTheme.bgColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Icon', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 8, children: _catIcons.entries.map((e) {
+                  final active = icon == e.key;
+                  return GestureDetector(
+                    onTap: () => setDialogState(() => icon = e.key),
+                    child: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: active ? AppTheme.primary.withOpacity(0.1) : AppTheme.bgColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: active ? AppTheme.primary : Colors.transparent, width: 2),
+                      ),
+                      child: Icon(e.value, size: 20, color: active ? AppTheme.primary : AppTheme.textMuted),
+                    ),
+                  );
+                }).toList()),
+              ]),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) return;
+              await db.updateCategory(id: cat.id, name: nameCtrl.text.trim(), icon: icon, parentId: parentId);
+              if (ctx.mounted) Navigator.pop(ctx);
+              setState(() {});
+            }, child: const Text('Save Changes')),
           ],
         ),
       ),
     );
+  }
+
+  void _deleteCategory(Category cat) async {
+    final db = ref.read(databaseProvider);
+    final subCount = (await db.getSubCategories(cat.id)).length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Category'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Delete "${cat.name}"?'),
+          const SizedBox(height: 8),
+          Text('Products in this category will become uncategorized.', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+          if (subCount > 0) ...[
+            const SizedBox(height: 4),
+            Text('$subCount sub-categor${subCount == 1 ? 'y' : 'ies'} will also be deleted.', style: TextStyle(fontSize: 13, color: Colors.red.shade400)),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await db.uncategorizeProductsByCategory(cat.id);
+      await db.deleteCategory(cat.id);
+      if (_selectedParent == cat.id || _selectedCategory == cat.id) {
+        _selectedParent = null;
+        _selectedCategory = null;
+      }
+      setState(() {});
+    }
   }
 
   Widget _buildProductGrid() {
@@ -200,6 +572,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Future<List<dynamic>> _loadProducts(AppDatabase db, String query) async {
     if (query.isNotEmpty) return db.searchProducts(query);
     if (_selectedCategory != null) return db.getProductsByCategory(_selectedCategory!);
+    if (_selectedParent != null) {
+      final subs = await db.getSubCategories(_selectedParent!);
+      final ids = [_selectedParent!, ...subs.map((s) => s.id)];
+      return db.getProductsByCategories(ids);
+    }
     return db.getAllProducts();
   }
 

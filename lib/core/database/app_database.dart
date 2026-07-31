@@ -84,6 +84,11 @@ class AppDatabase extends _$AppDatabase {
     return (select(products)..where((p) => p.categoryId.equals(categoryId))).get();
   }
 
+  Future<List<Product>> getProductsByCategories(List<String> ids) {
+    if (ids.isEmpty) return getAllProducts();
+    return (select(products)..where((p) => p.categoryId.isIn(ids))).get();
+  }
+
   Future<List<Product>> getLowStockProducts(int threshold) {
     return (select(products)..where((p) => p.quantity.isSmallerThan(Constant(threshold)))).get();
   }
@@ -158,6 +163,12 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteProduct(String id) =>
       (delete(products)..where((t) => t.id.equals(id))).go();
 
+  Future<void> uncategorizeProductsByCategory(String categoryId) async {
+    await (update(products)..where((t) => t.categoryId.equals(categoryId))).write(ProductsCompanion(
+      categoryId: Value<String?>(null),
+    ));
+  }
+
   // ── Categories ──
   Future<List<Category>> getAllCategories() => select(categories).get();
 
@@ -185,15 +196,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> updateCategory({
     required String id,
-    String? name,
+    required String name,
     String? icon,
     String? parentId,
   }) async {
     await (update(categories)..where((c) => c.id.equals(id))).write(CategoriesCompanion(
       id: Value(id),
-      name: name != null ? Value(name) : const Value.absent(),
-      icon: icon != null ? Value(icon) : const Value.absent(),
-      parentId: parentId != null ? Value(parentId) : const Value.absent(),
+      name: Value(name),
+      icon: Value(icon),
+      parentId: Value(parentId),
     ));
   }
 

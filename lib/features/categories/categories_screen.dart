@@ -94,6 +94,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
               const Spacer(),
               GestureDetector(
+                onTap: () => _addSubCategory(cat),
+                child: Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.add, size: 16, color: Color(0xFF10B981)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
                 onTap: () => _editCategory(cat),
                 child: Container(
                   width: 28, height: 28,
@@ -153,10 +162,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     );
   }
 
-  void _showCategoryDialog({Category? existing}) {
+  void _showCategoryDialog({Category? existing, String? initialParentId}) {
     final ctrl = TextEditingController(text: existing?.name ?? '');
     String? selectedIcon = existing?.icon;
-    String? selectedParent = existing?.parentId;
+    String? selectedParent = existing?.parentId ?? initialParentId;
 
     showDialog(context: context, builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
@@ -245,6 +254,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 
   void _addCategory() => _showCategoryDialog();
+  void _addSubCategory(Category parent) => _showCategoryDialog(initialParentId: parent.id);
   void _editCategory(Category cat) => _showCategoryDialog(existing: cat);
 
   void _deleteCategory(String id) async {

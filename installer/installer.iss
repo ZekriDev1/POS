@@ -31,7 +31,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: checkedonce
 Name: "startup"; Description: "Launch at Windows &startup"; GroupDescription: "Startup options:"; Flags: checkedonce
-Name: "pin2taskbar"; Description: "&Pin to taskbar (Windows 10 only)"; GroupDescription: "Taskbar:"; Flags: unchecked
+Name: "pin2taskbar"; Description: "&Pin to taskbar"; GroupDescription: "Taskbar:"; Flags: unchecked
 
 [Files]
 Source: "{#MyBuildDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
